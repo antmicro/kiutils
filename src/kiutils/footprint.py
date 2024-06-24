@@ -238,7 +238,7 @@ class DrillDefinition():
     """The optional ``offset`` token defines the drill offset coordinates from the center of the pad"""
 
     @classmethod
-    def from_sexpr(cls, exp: list) -> DrillDefinition:
+    def from_sexpr(cls, exp: list) -> Optional[DrillDefinition]:
         """Convert the given S-Expresstion into a DrillDefinition object
 
         Args:
@@ -261,9 +261,13 @@ class DrillDefinition():
         # Depending on the ``oval`` token, the fields may be shifted ..
         if exp[1] == 'oval':
             object.oval = True
+            if type(exp[2]) != float and type(exp[2]) != int:
+                return None
             object.diameter = exp[2]
             object.width = exp[3]
         else:
+            if type(exp[1]) != float and type(exp[1]) != int:
+                return None
             object.diameter = exp[1]
             if len(exp) > 2:
                 object.width = exp[2]
