@@ -26,6 +26,7 @@ from kiutils.items.zones import Zone
 from kiutils.items.common import Image, Position, Coordinate, Net, Group, Font
 from kiutils.items.fpitems import *
 from kiutils.items.gritems import *
+from kiutils.items.dimensions import *
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote, remove_prefix
 from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR
@@ -908,8 +909,7 @@ class Footprint():
             if item[0] == 'net_tie_pad_groups':
                 for layer in item[1:]:
                     object.netTiePadGroups.append(layer)
-            if item[0] == 'dimension':
-                raise NotImplementedError("Dimensions are not yet handled! Please report this bug along with the file being parsed.")
+            if item[0] == 'dimension': object.graphicItems.append(Dimension.from_sexpr(item))
 
         return object
 
