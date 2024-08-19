@@ -626,6 +626,10 @@ class GrPoly():
     locked: bool = False
     """The ``locked`` token defines if the object may be moved or not"""
 
+    stroke: Optional[Stroke] = None
+    """The optional ``stroke`` token describes the style of an optional border to be drawn around 
+    the text box"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> GrPoly:
         """Convert the given S-Expresstion into a GrPoly object
@@ -659,6 +663,7 @@ class GrPoly():
             if item[0] == 'tstamp': object.tstamp = item[1]
             if item[0] == 'fill': object.fill = item[1]
             if item[0] == 'width': object.width = item[1]
+            if item[0] == 'stroke': object.stroke = Stroke.from_sexpr(item)
 
         return object
 
@@ -694,7 +699,11 @@ class GrPoly():
 
         for point in self.coordinates:
             expression += f'{indents}    (xy {point.X} {point.Y})\n'
-        expression += f'{indents}  ){layer} (width {self.width}){fill}{tstamp}){endline}'
+        expression += f'{indents}  ){endline}{endline}'
+        if self.stroke is None:
+            expression += f'{indents}{layer} (width {self.width}){fill}{tstamp}){endline}'
+        else:
+            expression += f'{indents}{self.stroke.to_sexpr(indent, newline=False)}{fill}{layer}{tstamp}){endline}'
         return expression
 
 @dataclass
