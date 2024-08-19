@@ -630,7 +630,6 @@ class GrPoly():
     """The optional ``stroke`` token describes the style of an optional border to be drawn around 
     the text box"""
 
-
     @classmethod
     def from_sexpr(cls, exp: list) -> GrPoly:
         """Convert the given S-Expresstion into a GrPoly object
@@ -705,7 +704,6 @@ class GrPoly():
             expression += f'{indents}{layer} (width {self.width}){fill}{tstamp}){endline}'
         else:
             expression += f'{indents}{self.stroke.to_sexpr(indent, newline=False)}{fill}{layer}{tstamp}){endline}'
-        #expression += f'{indents}  ){layer} (width {self.width}){fill}{tstamp}){endline}'
         return expression
 
 @dataclass
