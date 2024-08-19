@@ -701,7 +701,10 @@ class GrPoly():
         for point in self.coordinates:
             expression += f'{indents}    (xy {point.X} {point.Y})\n'
         expression += f'{indents}  ){endline}{endline}'
-        expression += f'{indents}{self.stroke.to_sexpr(indent, newline=False)}{fill}{layer}{tstamp}){endline}'
+        if self.stroke is None:
+            expression += f'{indents}{layer} (width {self.width}){fill}{tstamp}){endline}'
+        else:
+            expression += f'{indents}{self.stroke.to_sexpr(indent, newline=False)}{fill}{layer}{tstamp}){endline}'
         #expression += f'{indents}  ){layer} (width {self.width}){fill}{tstamp}){endline}'
         return expression
 
