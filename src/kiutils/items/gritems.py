@@ -626,6 +626,10 @@ class GrPoly():
     locked: bool = False
     """The ``locked`` token defines if the object may be moved or not"""
 
+    stroke: Optional[Stroke] = None
+    """The optional ``stroke`` token describes the style of an optional border to be drawn around 
+    the text box"""
+
 
     @classmethod
     def from_sexpr(cls, exp: list) -> GrPoly:
