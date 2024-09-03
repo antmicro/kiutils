@@ -746,10 +746,6 @@ class Footprint():
     tags: Optional[str] = None
     """The optional ``tags`` token defines a string of search tags for the footprint"""
 
-    properties: Dict = field(default_factory=dict)
-    """The ``properties`` token defines dictionary of properties as key / value pairs where key being
-    the name of the property and value being the description of the property"""
-
     path: Optional[str] = None
     """The ``path`` token defines the hierarchical path of the schematic symbol linked to the footprint.
     This only applies to footprints defined in the board file format."""
@@ -803,6 +799,9 @@ class Footprint():
 
     attributes: Attributes = field(default_factory=lambda: Attributes())
     """The optional ``attributes`` section defines the attributes of the footprint"""
+
+    properties: List = field(default_factory=list)
+    """The ``properties`` section defines the properties of the footprint"""
 
     privateLayers: List[str] = field(default_factory=list)
     """The optional ``privateLayers`` token defines a list of private layers assigned to the footprint.
@@ -897,7 +896,7 @@ class Footprint():
             if item[0] == 'image':object.graphicItems.append(Image.from_sexpr(item))
             if item[0] == 'pad': object.pads.append(Pad.from_sexpr(item))
             if item[0] == 'zone': object.zones.append(Zone.from_sexpr(item))
-            if item[0] == 'property': object.properties.update({ item[1]: item[2] })
+            if item[0] == 'property': object.properties.append(FpProperty.from_sexpr(item))
             if item[0] == 'group': object.groups.append(Group.from_sexpr(item))
             if item[0] == 'private_layers':
                 for layer in item[1:]:
@@ -1039,8 +1038,6 @@ class Footprint():
             expression += f'{indents}  (descr "{dequote(self.description)}")\n'
         if self.tags is not None:
             expression += f'{indents}  (tags "{dequote(self.tags)}")\n'
-        for item in self.properties:
-            expression += f'{indents}  (property "{dequote(item)}" "{dequote(self.properties[item])}")\n'
         if self.path is not None:
             expression += f'{indents}  (path "{dequote(self.path)}")\n'
 
@@ -1080,7 +1077,9 @@ class Footprint():
             for item in self.netTiePadGroups:
                 expression += f' "{dequote(item)}"'
             expression += f')\n'
-
+            
+        for item in self.properties:
+            expression += item.to_sexpr(indent=indent+2)
         for item in self.graphicItems:
             expression += item.to_sexpr(indent=indent+2)
         for item in self.pads:

@@ -843,3 +843,72 @@ class FpCurve():
             expression += f'{indents}  (xy {point.X} {point.Y})\n'
         expression += f'{indents}) (layer "{dequote(self.layer)}"){width}{locked}{uuid}){endline}'
         return expression
+
+
+@dataclass
+class FpProperty:
+    """The ``property`` token defines a footprint property when used inside a ``footprint`` definition.
+
+    This can store such information about footprint as Reference, Value, Datasheet, ..
+    """
+
+    key: str = ""
+    """The ``key`` string defines the name of the property and must be unique"""
+
+    value: str = ""
+    """The ``value`` string defines the value of the property"""
+
+    position: Position = field(default_factory=lambda: Position())
+    """The ``position`` defines the X and Y position coordinates and optional orientation angle of
+    the text"""
+
+    layer: str = "F.Cu"
+    """The ``layer`` token defines the canonical layer the text resides on"""
+
+    hide: bool = False
+    """The optional ``hide`` token, defines if the text is hidden"""
+
+    effects: Effects = field(default_factory=lambda: Effects())
+    """The ``effects`` token defines how the text is displayed"""
+
+    uuid: Optional[str] = None     
+    """The optional ``uuid`` defines the universally unique identifier"""
+
+    unlocked: Optional[bool] = None
+    """The optional ``unlocked`` token defines if the property can be edited"""
+
+    @classmethod
+    def from_sexpr(cls, exp: list) -> FpProperty:
+        if not isinstance(exp, list):
+            raise Exception("Expression does not have the correct type")
+        if exp[0] != 'property':
+            raise Exception("Expression does not have the correct type")
+        object = cls()
+        object.key = exp[1]
+        object.value = exp[2]
+        for item in exp[3:]:
+            if item[0] == 'hide': object.hide = sexpr.parse_bool(item)
+            if item[0] == 'at': object.position = Position().from_sexpr(item)
+            if item[0] == 'layer': object.layer = item[1]
+            if item[0] == 'effects': object.effects = Effects().from_sexpr(item)
+            if item[0] == 'uuid': object.uuid = item[1]
+            if item[0] == 'unlocked': object.unlocked = sexpr.parse_bool(item)
+        return object
+
+    def to_sexpr(self, indent: int = 2, newline: bool = True) -> str:
+        indents = ' ' * indent
+        endline = '\n' if newline else ''
+
+        hide = ' ( hide yes )' if self.hide else ''
+        if self.unlocked is not None:
+            unlocked = ' (unlocked yes)' if self.unlocked else ' (unlocked no)'
+        else:
+            unlocked = ''
+        posA = f' {self.position.angle}' if self.position.angle is not None else ''
+
+        expression =  f'{indents}(property "{self.key}" "{self.value}" (at {self.position.X} {self.position.Y}{posA}){unlocked} (layer "{self.layer}"){hide}\n'
+        if self.uuid is not None:
+            expression += f'{indents}  (uuid "{self.uuid}")\n'
+        expression += f'{indents}  {self.effects.to_sexpr()}'
+        expression += f'{indents}){endline}'
+        return expression
