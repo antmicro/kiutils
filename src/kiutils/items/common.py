@@ -479,9 +479,7 @@ class Effects():
 
         object = cls()
         for item in exp:
-            if type(item) != type([]):
-                if item == 'hide': object.hide = True
-                else: continue
+            if item[0] == 'hide': object.hide = True if item[1] == 'yes' else False 
             if item[0] == 'font': object.font = Font().from_sexpr(item)
             if item[0] == 'justify': object.justify = Justify().from_sexpr(item)
             if item[0] == 'href': object.href = item[1]
@@ -501,7 +499,7 @@ class Effects():
         endline = '\n' if newline else ''
 
         justify = f' {self.justify.to_sexpr()}' if self.justify.to_sexpr() != '' else ''
-        hide = f' hide' if self.hide else ''
+        hide = f'( hide yes )' if self.hide else ''
         href = f' (href "{dequote(self.href)}")' if self.href is not None else ''
 
         expression =  f'{indents}(effects {self.font.to_sexpr()}{justify}{href}{hide}){endline}'
@@ -572,8 +570,8 @@ class Group():
     locked: bool = False
     """The ``locked`` token defines if the group may be moved or not"""
 
-    id: str = ""
-    """The ``id`` token attribute defines the unique identifier of the group"""
+    uuid: str = ""
+    """The optional ``uuid`` defines the universally unique identifier"""
 
     members: List[str] = field(default_factory=list)
     """The ``members`` token attributes define a list of unique identifiers of the objects belonging to the group"""
@@ -601,10 +599,9 @@ class Group():
         object = cls()
         object.name = exp[1]
         for item in exp:
-            if type(item) != type([]):
-                if item == 'locked': object.locked = True
-                continue
-            if item[0] == 'id': object.id = item[1]
+            if type(item) != type([]): continue
+            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'members':
                 for member in item[1:]:
                     object.members.append(member)
@@ -622,12 +619,12 @@ class Group():
         """
         indents = ' '*indent
         endline = '\n' if newline else ''
-        locked = f' locked' if self.locked else ''
+        locked = f'( locked yes )' if self.locked else ''
 
-        expression =  f'{indents}(group "{dequote(self.name)}"{locked} (id {self.id})\n'
+        expression =  f'{indents}(group "{dequote(self.name)}"{locked} (uuid "{dequote(self.uuid)}")\n'
         expression += f'{indents}  (members\n'
         for member in self.members:
-            expression += f'{indents}    {member}\n'
+            expression += f'{indents}    "{dequote(member)}"\n'
 
         expression += f'{indents}  )\n'
         expression += f'{indents}){endline}'
@@ -1152,10 +1149,10 @@ class Image():
 
         expression =  f'{indents}(image (at {self.position.X} {self.position.Y}){layer}{scale}\n'
         if self.uuid is not None:
-            expression += f'{indents}  (uuid {self.uuid})\n'
-        expression += f'{indents}  (data\n'
+            expression += f'{indents}  (uuid "{self.uuid}")\n'
+        expression += f'{indents}  (data '
         for b64part in self.data:
-            expression += f'{indents}    {b64part}\n'
+            expression += f'{indents}    "{b64part}"\n'
         expression += f'{indents}  )\n'
         expression += f'{indents}){endline}'
         return expression
