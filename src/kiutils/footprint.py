@@ -58,8 +58,9 @@ class Attributes():
     allowMissingCourtyard: bool = False
     """The optional ``allowMissingCourtyard`` token indicates if the footprint generates a 
     "missing courtyard" DRC violation.
-    
     Available since KiCad 7"""
+
+    dnp: bool = False
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Attributes:
@@ -93,6 +94,7 @@ class Attributes():
             if item == 'exclude_from_pos_files': object.excludeFromPosFiles = True
             if item == 'exclude_from_bom': object.excludeFromBom = True
             if item == 'allow_missing_courtyard': object.allowMissingCourtyard = True
+            if item == 'dnp': object.dnp = True
         return object
 
     def to_sexpr(self, indent=0, newline=False) -> str:
@@ -117,7 +119,8 @@ class Attributes():
             and self.boardOnly == False
             and self.excludeFromBom == False
             and self.excludeFromPosFiles == False
-            and self.allowMissingCourtyard == False):
+            and self.allowMissingCourtyard == False
+            and self.dnp == False):
             return ''
 
         indents = ' '*indent
@@ -129,6 +132,7 @@ class Attributes():
         if self.excludeFromPosFiles: expression += ' exclude_from_pos_files'
         if self.excludeFromBom: expression += ' exclude_from_bom'
         if self.allowMissingCourtyard: expression += ' allow_missing_courtyard'
+        if self.dnp: expression += ' dnp'
         expression += f'){endline}'
         return expression
 
@@ -420,8 +424,8 @@ class Pad():
     """The optional ``net`` token defines the integer number and name string of the net connection
     for the pad."""
 
-    tstamp: Optional[str] = None           # Used since KiCad 6
-    """The optional ``tstamp`` token defines the unique identifier of the pad object"""
+    uuid: Optional[str] = None
+    """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
 
     pinFunction: Optional[str] = None
     """The optional ``pinFunction`` token attribute defines the associated schematic symbol pin name"""
@@ -508,9 +512,7 @@ class Pad():
         object.shape = exp[3]
 
         for item in exp[3:]:
-            if type(item) != type([]):
-                if item == 'locked': object.locked = True
-
+            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'size': object.size = Position().from_sexpr(item)
             if item[0] == 'drill': object.drill = DrillDefinition().from_sexpr(item)
@@ -526,7 +528,7 @@ class Pad():
                 for chamfer in item[1:]:
                     object.chamfer.append(chamfer)
             if item[0] == 'net': object.net = Net().from_sexpr(item)
-            if item[0] == 'tstamp': object.tstamp = item[1]
+            if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'pinfunction': object.pinFunction = item[1]
             if item[0] == 'pintype': object.pinType = item[1]
             if item[0] == 'die_length': object.dieLength = item[1]
@@ -579,7 +581,7 @@ class Pad():
 
         layers += ')'
 
-        locked = ' locked' if self.locked else ''
+        locked = '(locked yes)' if self.locked else ''
         drill = f' {self.drill.to_sexpr()}' if self.drill is not None else ''
         ppty = f' (property {self.property})' if self.property is not None else ''
         rul = ' (remove_unused_layers)' if self.removeUnusedLayers else ''
@@ -595,7 +597,7 @@ class Pad():
         if net != '' or pf != '' or pt != '':
             schematicSymbolAssociated = True
 
-        tstamp = f' (tstamp {self.tstamp})' if self.tstamp is not None else ''
+        uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
 
         if len(self.chamfer) > 0:
             champferFound = True
@@ -640,7 +642,7 @@ class Pad():
             marginFound = True
             tg = f' (thermal_gap {self.thermalGap})'
 
-        expression =  f'{indents}(pad "{dequote(str(self.number))}" {self.type} {self.shape}{locked} {position} (size {self.size.X} {self.size.Y}){drill}{ppty}{layers}{rul}{kel}{rrr}'
+        expression =  f'{indents}(pad "{dequote(str(self.number))}" {self.type} {self.shape} {position} (size {self.size.X} {self.size.Y}){drill}{ppty}{locked}{layers}{rul}{kel}{rrr}'
         if champferFound:
             # Only one whitespace here as all temporary strings have at least one leading whitespace
             expression += f'\n{indents} {cr}{c}'
@@ -662,7 +664,7 @@ class Pad():
                     expression += f'\n{primitive.to_sexpr(newline=False,indent=indent+4)}'
                 expression += f'\n{indents}  )'
 
-        expression += f'{tstamp}){endline}'
+        expression += f'{uuid}){endline}'
         return expression
 
 @dataclass
@@ -731,12 +733,8 @@ class Footprint():
     layer: str = "F.Cu"
     """The ``layer`` token defines the canonical layer the footprint is placed"""
 
-    tedit: str = remove_prefix(hex(calendar.timegm(datetime.datetime.now().utctimetuple())), '0x')
-    """The ``tedit`` token defines a the last time the footprint was edited"""
-
-    tstamp: Optional[str] = None
-    """The ``tstamp`` token defines the unique identifier for the footprint. This only applies
-    to footprints defined in the board file format."""
+    uuid: Optional[str] = None
+    """The optional ``uuid`` defines the universally unique identifier"""
 
     position: Optional[Position] = None
     """The ``position`` token defines the X and Y coordinates and rotational angle of the
@@ -866,15 +864,13 @@ class Footprint():
         object.libId = exp[1]
         for item in exp[2:]:
             if not isinstance(item, list):
-                if item == 'locked': object.locked = True
                 if item == 'placed': object.placed = True
                 continue
-
+            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
             if item[0] == 'version': object.version = item[1]
             if item[0] == 'generator': object.generator = item[1]
             if item[0] == 'layer': object.layer = item[1]
-            if item[0] == 'tedit': object.tedit = item[1]
-            if item[0] == 'tstamp': object.tstamp = item[1]
+            if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'descr': object.description = item[1]
             if item[0] == 'tags': object.tags = item[1]
             if item[0] == 'path': object.path = item[1]
@@ -1024,19 +1020,18 @@ class Footprint():
         indents = ' '*indent
         endline = '\n' if newline else ''
 
-        locked = ' locked' if self.locked else ''
+        locked = ' (locked yes)' if self.locked else ''
         placed = ' placed' if self.placed else ''
         version = f' (version {self.version})' if self.version is not None else ''
         generator = f' (generator {self.generator})' if self.generator is not None else ''
-        tstamp = f' (tstamp {self.tstamp})' if self.tstamp is not None else ''
 
         expression =  f'{indents}(footprint "{dequote(self.libId)}"{locked}{placed}{version}{generator}'
         if layerInFirstLine:
             expression += f' (layer "{dequote(self.layer)}")\n'
         else:
             expression += f'\n{indents}  (layer "{dequote(self.layer)}")\n'
-        expression += f'{indents}  (tedit {self.tedit}){tstamp}\n'
-
+        if self.uuid is not None:
+            expression += f'{indents}  (uuid "{dequote(self.uuid)}")\n'
         if self.position is not None:
             angle = f' {self.position.angle}' if self.position.angle is not None else ''
             expression += f'{indents}  (at {self.position.X} {self.position.Y}{angle})\n'
