@@ -31,6 +31,8 @@ class GeneralSettings():
 
     thickness: float = 1.6
     """The ``thickness`` token attribute defines the overall board thickness"""
+    legacyTeardrops: str = 'no'
+    """The ``legacyTeardrops`` token attribute defines if legacy teardrops are used """
 
     @classmethod
     def from_sexpr(cls, exp: list) -> GeneralSettings:
@@ -55,6 +57,7 @@ class GeneralSettings():
         object = cls()
         for item in exp:
             if item[0] == 'thickness': object.thickness = item[1]
+            if item[0] == 'legacy_teardrops': object.legacyTeardrops = item[1]
         return object
 
     def to_sexpr(self, indent=2, newline=True) -> str:
@@ -71,7 +74,7 @@ class GeneralSettings():
         endline = '\n' if newline else ''
 
         expression =  f'{indents}(general\n'
-        expression += f'{indents}  (thickness {self.thickness})\n'
+        expression += f'{indents}  (thickness {self.thickness}) (legacy_teardrops {self.legacyTeardrops})\n'
         expression += f'{indents}){endline}'
         return expression
 
@@ -779,9 +782,9 @@ class Segment():
     net: int = 0
     """The ``net`` token defines by the net ordinal number which net in the net
     section that the segment is part of"""
-
-    tstamp: str = ""
-    """The ``tstamp`` token defines the unique identifier of the line object"""
+    
+    uuid: Optional[str] =""
+    """The optional ``uuid`` defines the universally unique identifier"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Segment:
@@ -805,15 +808,13 @@ class Segment():
 
         object = cls()
         for item in exp:
-            if type(item) != type([]):
-                if item == 'locked': object.locked = True
-                continue
+            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
             if item[0] == 'start': object.start = Position().from_sexpr(item)
             if item[0] == 'end': object.end = Position().from_sexpr(item)
             if item[0] == 'width': object.width = item[1]
             if item[0] == 'layer': object.layer = item[1]
             if item[0] == 'net': object.net = item[1]
-            if item[0] == 'tstamp': object.tstamp = item[1]
+            if item[0] == 'uuid': object.uuid = item[1]
         return object
 
     def to_sexpr(self, indent=2, newline=True) -> str:
@@ -828,9 +829,9 @@ class Segment():
         """
         indents = ' '*indent
         endline = '\n' if newline else ''
-        locked = ' locked' if self.locked else ''
+        locked = '( locked yes )' if self.locked else ''
 
-        return f'{indents}(segment{locked} (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (width {self.width}) (layer "{dequote(self.layer)}") (net {self.net}) (tstamp {self.tstamp})){endline}'
+        return f'{indents}(segment{locked} (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (width {self.width}) (layer "{dequote(self.layer)}") (net {self.net}) (uuid "{dequote(self.uuid)}")){endline}'
 
 @dataclass
 class Via():
@@ -873,8 +874,8 @@ class Via():
     """The ``net`` token defines by net ordinal number which net in the net section that
     the via is part of"""
 
-    tstamp: Optional[str] = None
-    """The ``tstamp`` token defines the unique identifier of the via"""
+    uuid: Optional[str] =""
+    """The optional ``uuid`` defines the universally unique identifier"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Via:
@@ -899,9 +900,9 @@ class Via():
         object = cls()
         for item in exp:
             if type(item) != type([]):
-                if item == 'locked': object.locked = True
                 if item == 'micro' or item == 'blind': object.type = item
                 continue
+            if item == ['locked', 'yes']: object.locked=True
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'size': object.size = item[1]
             if item[0] == 'drill': object.drill = item[1]
@@ -912,7 +913,7 @@ class Via():
             if item[0] == 'keep_end_layers': object.keepEndLayers = True
             if item[0] == 'free': object.free = True
             if item[0] == 'net': object.net = item[1]
-            if item[0] == 'tstamp': object.tstamp = item[1]
+            if item[0] == 'uuid': object.uuid = item[1]
         return object
 
     def to_sexpr(self, indent=2, newline=True) -> str:
@@ -929,7 +930,7 @@ class Via():
         endline = '\n' if newline else ''
 
         type = f' {self.type}' if self.type is not None else ''
-        locked = f' locked' if self.locked else ''
+        locked = f'( locked yes )' if self.locked else ''
 
         layers = ''
         for layer in self.layers:
@@ -937,9 +938,9 @@ class Via():
         rum = f' (remove_unused_layers)' if self.removeUnusedLayers else ''
         kel = f' (keep_end_layers)' if self.keepEndLayers else ''
         free = f' (free)' if self.free else ''
-        tstamp = f' (tstamp {self.tstamp})' if self.tstamp is not None else ''
+        uuid = f' (uuid "{dequote(self.uuid)}")' if self.uuid is not None else ''
 
-        return f'{indents}(via{type}{locked} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){rum}{kel}{free} (net {self.net}){tstamp}){endline}'
+        return f'{indents}(via{type}{locked} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){rum}{kel}{free} (net {self.net}){uuid}){endline}'
 
 @dataclass
 class Arc():
@@ -972,8 +973,7 @@ class Arc():
     """The ``net`` token defines the net ordinal number which net in the net section that arc is part
     of. Defaults to 0."""
 
-    tstamp: Optional[str] = None
-    """The optional ``tstamp`` token defines the unique identifier of the arc"""
+    uuid: Optional[str] = None
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Arc:
@@ -997,16 +997,14 @@ class Arc():
 
         object = cls()
         for item in exp:
-            if type(item) != type([]):
-                if item == 'locked': object.locked = True
-                continue
+            if item == ['locked', 'yes']: object.locked=True
             if item[0] == 'start': object.start = Position().from_sexpr(item)
             elif item[0] == 'mid': object.mid = Position().from_sexpr(item)
             elif item[0] == 'end': object.end = Position().from_sexpr(item)
             elif item[0] == 'width': object.width = item[1]
             elif item[0] == 'layer': object.layer = item[1]
             elif item[0] == 'net': object.net = item[1]
-            elif item[0] == 'tstamp': object.tstamp = item[1]
+            if item[0] == 'uuid': object.uuid = item[1]
         return object
 
     def to_sexpr(self, indent=2, newline=True) -> str:
@@ -1022,13 +1020,13 @@ class Arc():
         indents = ' '*indent
         endline = '\n' if newline else ''
 
-        locked = f' locked' if self.locked else ''
-        tstamp = f' (tstamp {self.tstamp})' if self.tstamp is not None else ''
+        locked = f'( locked yes )' if self.locked else ''
+        uuid = f' (uuid "{dequote(self.uuid)}")' if self.uuid is not None else ''
 
         expression = f'{indents}(arc{locked} (start {self.start.X} {self.start.Y}) '
         expression += f'(mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}) '
         expression += f'(width {self.width}) (layer "{dequote(self.layer)}") '
-        expression += f'(net {self.net}){tstamp}){endline}'
+        expression += f'(net {self.net}){uuid}){endline}'
         return expression
 
 
@@ -1055,8 +1053,7 @@ class Target():
     layer: str = "F.Cu"
     """The ``layer`` token sets the canonical layer where the target marker resides"""
 
-    tstamp: Optional[str] = None
-    """The ``tstamp`` token defines the unique identifier of the target"""
+    uuid: Optional[str] = None
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Target:
@@ -1085,7 +1082,7 @@ class Target():
             if item[0] == 'size': object.size = item[1]
             if item[0] == 'width': object.width = item[1]
             if item[0] == 'layer': object.layer = item[1]
-            if item[0] == 'tstamp': object.tstamp = item[1]
+            if item[0] == 'uuid': object.uuid = item[1]
         return object
 
     def to_sexpr(self, indent=2, newline=True) -> str:
@@ -1101,4 +1098,4 @@ class Target():
         indents = ' '*indent
         endline = '\n' if newline else ''
 
-        return f'{indents}(target {self.type} (at {self.position.X} {self.position.Y}) (size {self.size}) (width {self.width}) (layer "{self.layer}") (tstamp {self.tstamp})){endline}'
+        return f'{indents}(target {self.type} (at {self.position.X} {self.position.Y}) (size {self.size}) (width {self.width}) (layer "{self.layer}") (uuid "{dequote(self.uuid)}")){endline}'
