@@ -144,6 +144,7 @@ class Board():
             if item[0] == 'target': object.targets.append(Target().from_sexpr(item))
             if item[0] == 'segment': object.traceItems.append(Segment().from_sexpr(item))
             if item[0] == 'arc': object.traceItems.append(Arc().from_sexpr(item))
+            if item[0] == 'generated': object.traceItems.append(Generated().from_sexpr(item))
             if item[0] == 'via': object.traceItems.append(Via().from_sexpr(item))
             if item[0] == 'zone': object.zones.append(Zone().from_sexpr(item))
             if item[0] == 'group': object.groups.append(Group().from_sexpr(item))
