@@ -23,7 +23,7 @@ from kiutils.items.common import Effects, Position, Property, Font
 from kiutils.items.syitems import *
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote
-from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR
+from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_SCH,KIUTILS_CREATE_NEW_GENERATOR_STR
 
 @dataclass
 class SymbolAlternativePin():
@@ -569,7 +569,7 @@ class SymbolLib():
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-symbol-lib/
     """
-    version: str = KIUTILS_CREATE_NEW_VERSION_STR
+    version: str = KIUTILS_CREATE_NEW_VERSION_STR_SCH
     """The ``version`` token attribute defines the symbol library version using the YYYYMMDD date format"""
 
     generator: Optional[str] = None

@@ -27,7 +27,7 @@ from kiutils.items.dimensions import Dimension
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
 from kiutils.footprint import Footprint
-from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR, KIUTILS_CREATE_NEW_GENERATOR_STR
+from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_PCB, KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
 
 @dataclass
 class Board():
@@ -42,6 +42,9 @@ class Board():
 
     generator: str = ""
     """The ``generator`` token defines the program used to write the file"""
+
+    generatorVersion: str = ""
+    """The ``generatorVersion`` token defines the program version used to write the file"""
 
     general: GeneralSettings = field(default_factory=lambda: GeneralSettings())
     """The ``general`` token defines general information about the board"""
@@ -117,6 +120,7 @@ class Board():
         for item in exp:
             if item[0] == 'version': object.version = item[1]
             if item[0] == 'generator': object.generator = item[1]
+            if item[0] == 'generator_version': object.generatorVersion=item[1]
             if item[0] == 'general': object.general = GeneralSettings().from_sexpr(item)
             if item[0] == 'paper': object.paper = PageSettings().from_sexpr(item)
             if item[0] == 'title_block': object.titleBlock = TitleBlock().from_sexpr(item)
@@ -178,8 +182,9 @@ class Board():
             - Board: Empty board
         """
         board = cls(
-            version = KIUTILS_CREATE_NEW_VERSION_STR,
-            generator = KIUTILS_CREATE_NEW_GENERATOR_STR
+            version = KIUTILS_CREATE_NEW_VERSION_STR_PCB,
+            generator = KIUTILS_CREATE_NEW_GENERATOR_STR,
+            generatorVersion = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
         )
 
         # Add all standard layers to board
@@ -255,7 +260,7 @@ class Board():
 
         addNewLine = False
 
-        expression =  f'{indents}(kicad_pcb (version {self.version}) (generator {self.generator})\n\n'
+        expression =  f'{indents}(kicad_pcb (version {self.version}) (generator "{self.generator}") (generator_version "{str(self.generatorVersion)}")\n\n'
         expression += self.general.to_sexpr(indent+2) + '\n'
         expression += self.paper.to_sexpr(indent+2)
         if self.titleBlock is not None:

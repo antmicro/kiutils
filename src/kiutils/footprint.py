@@ -29,7 +29,7 @@ from kiutils.items.gritems import *
 from kiutils.items.dimensions import *
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote, remove_prefix
-from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR
+from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_PCB, KIUTILS_CREATE_NEW_GENERATOR_STR
 
 @dataclass
 class Attributes():
@@ -61,6 +61,7 @@ class Attributes():
     Available since KiCad 7"""
 
     dnp: bool = False
+    """The optional ``dnp`` token indicates that the footprint is not to be populated"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Attributes:
@@ -953,8 +954,8 @@ class Footprint():
             raise Exception("Unsupported type was given")
 
         fp = cls(
-            version = KIUTILS_CREATE_NEW_VERSION_STR,
-            generator = 'kiutils'
+            version = KIUTILS_CREATE_NEW_VERSION_STR_PCB,
+            generator = KIUTILS_CREATE_NEW_GENERATOR_STR
         )
         fp.libId = library_id
 

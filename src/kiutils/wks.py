@@ -22,7 +22,7 @@ from os import path
 from kiutils.items.common import Justify
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
-from kiutils.misc.config import KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_VERSION_STR
+from kiutils.misc.config import KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_VERSION_STR_SCH
 
 @dataclass
 class WksFontSize():
@@ -918,7 +918,7 @@ class WorkSheet():
             WorkSheet: A empty worksheet
         """
         return cls(
-            version = KIUTILS_CREATE_NEW_VERSION_STR,
+            version = KIUTILS_CREATE_NEW_VERSION_STR_SCH,
             generator = KIUTILS_CREATE_NEW_GENERATOR_STR
         )
 

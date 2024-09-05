@@ -23,7 +23,7 @@ from kiutils.items.common import Image, PageSettings, TitleBlock
 from kiutils.items.schitems import *
 from kiutils.symbol import Symbol, SchematicLibSymbol
 from kiutils.utils import sexpr
-from kiutils.misc.config import KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_VERSION_STR
+from kiutils.misc.config import KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_VERSION_STR_SCH, KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
 
 @dataclass
 class Schematic():
@@ -33,11 +33,14 @@ class Schematic():
         https://dev-docs.kicad.org/en/file-formats/sexpr-schematic/
     """
 
-    version: str = KIUTILS_CREATE_NEW_VERSION_STR
+    version: str = KIUTILS_CREATE_NEW_VERSION_STR_SCH
     """The ``version`` token attribute defines the schematic version using the YYYYMMDD date format"""
 
     generator: str = KIUTILS_CREATE_NEW_GENERATOR_STR
     """The ``generator`` token attribute defines the program used to write the file"""
+
+    generatorVersion : str = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+    """The ``generatorVersion`` token attribute defines the program version used to write the file"""
 
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
@@ -136,6 +139,7 @@ class Schematic():
 
         object = cls()
         for item in exp:
+            if item[0] == 'generator_version': object.generatorVersion = item[1]
             if item[0] == 'version': object.version = item[1]
             if item[0] == 'generator': object.generator = item[1]
             if item[0] == 'uuid': object.uuid = item[1]
@@ -203,8 +207,9 @@ class Schematic():
             - Schematic: Empty schematic
         """
         schematic = cls(
-            version = KIUTILS_CREATE_NEW_VERSION_STR,
-            generator = KIUTILS_CREATE_NEW_GENERATOR_STR
+            version = KIUTILS_CREATE_NEW_VERSION_STR_SCH,
+            generator = KIUTILS_CREATE_NEW_GENERATOR_STR,
+            generatorVersion = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
         )
         schematic.sheetInstances.append(HierarchicalSheetInstance(instancePath='/', page='1'))
         return schematic
@@ -242,9 +247,9 @@ class Schematic():
         indents = ' '*indent
         endline = '\n' if newline else ''
 
-        expression =  f'{indents}(kicad_sch (version {self.version}) (generator {self.generator})\n'
+        expression =  f'{indents}(kicad_sch (version {self.version}) (generator "{self.generator}") (generator_version "{str(self.generatorVersion)}")\n'
         if self.uuid is not None:
-            expression += f'\n{indents}  (uuid {self.uuid})\n\n'
+            expression += f'\n{indents}  (uuid "{self.uuid}")\n\n'
         expression += f'{self.paper.to_sexpr(indent+2)}'
         if self.titleBlock is not None:
             expression += f'\n{self.titleBlock.to_sexpr(indent+2)}'
