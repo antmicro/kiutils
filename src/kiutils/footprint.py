@@ -840,6 +840,10 @@ class Footprint():
     """The ``filePath`` token defines the path-like string to the library file. Automatically set when
     ``self.from_file()`` is used. Allows the use of ``self.to_file()`` without parameters."""
 
+    sheetname: Optional[str] = None
+
+    sheetfile: Optional[str] = None
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Footprint:
         """Convert the given S-Expresstion into a Footprint object
@@ -899,6 +903,8 @@ class Footprint():
             if item[0] == 'zone': object.zones.append(Zone.from_sexpr(item))
             if item[0] == 'property': object.properties.append(FpProperty.from_sexpr(item))
             if item[0] == 'group': object.groups.append(Group.from_sexpr(item))
+            if item[0] == 'sheetname': object.sheetname = item[1]
+            if item[0] == 'sheetfile': object.sheetfile = item[1]
             if item[0] == 'private_layers':
                 for layer in item[1:]:
                     object.privateLayers.append(layer)
@@ -1074,6 +1080,10 @@ class Footprint():
             expression += item.to_sexpr(indent=indent+2)
         if self.path is not None:
             expression += f'{indents}  (path "{dequote(self.path)}")\n'
+        if self.sheetname is not None:
+            expression += f'{indents}  (sheetname "{self.sheetname}")\n'
+        if self.sheetfile is not None:
+            expression += f'{indents}  (sheetfile "{self.sheetfile}")\n'
         if self.solderPasteRatio is not None:
             expression += f'{indents}  (solder_paste_ratio {self.solderPasteRatio})\n'
         if self.attributes is not None:
