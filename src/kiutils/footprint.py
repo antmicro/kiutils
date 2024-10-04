@@ -399,11 +399,11 @@ class Pad():
     are ``pad_prop_bga``, ``pad_prop_fiducial_glob``, ``pad_prop_fiducial_loc``, ``pad_prop_testpoint``,
     ``pad_prop_heatsink``, ``pad_prop_heatsink``, and ``pad_prop_castellated``"""
 
-    removeUnusedLayers: bool = False
+    removeUnusedLayers: Optional[bool] = None
     """The optional ``removeUnusedLayers`` token specifies that the copper should be removed from
     any layers the pad is not connected to"""
 
-    keepEndLayers: bool = False
+    keepEndLayers: Optional[bool] = None
     """The optional ``keepEndLayers`` token specifies that the top and bottom layers should be
     retained when removing the copper from unused layers"""
 
@@ -483,7 +483,7 @@ class Pad():
     # These two however are note generated under the primitive token from the KiCad
     # generator. These two params may be found in gr_poly or gr_XX only.
     # So for now, the custom pad primitives are only a list of graphical objects
-    customPadPrimitives: List = field(default_factory=list)
+    customPadPrimitives: Optional[List] = None
     """The optional ``customPadPrimitives`` defines the drawing objects and options used to define
     a custom pad"""
 
@@ -521,8 +521,8 @@ class Pad():
                 for layer in item[1:]:
                     object.layers.append(layer)
             if item[0] == 'property': object.property = item[1]
-            if item[0] == 'remove_unused_layers': object.removeUnusedLayers = True
-            if item[0] == 'keep_end_layers': object.keepEndLayers = True
+            if item[0] == 'remove_unused_layers': object.removeUnusedLayers = sexpr.parse_bool(item)
+            if item[0] == 'keep_end_layers': object.keepEndLayers = sexpr.parse_bool(item)
             if item[0] == 'roundrect_rratio': object.roundrectRatio = item[1]
             if item[0] == 'chamfer_ratio': object.chamferRatio = item[1]
             if item[0] == 'chamfer':
@@ -542,6 +542,7 @@ class Pad():
             if item[0] == 'thermal_gap': object.thermalGap = item[1]
             if item[0] == 'options': object.customPadOptions = PadOptions().from_sexpr(item)
             if item[0] == 'primitives':
+                object.customPadPrimitives = []
                 for primitive in item[1:]:
                     if primitive[0] == 'gr_text': object.customPadPrimitives.append(GrText().from_sexpr(primitive))
                     if primitive[0] == 'gr_text_box': object.customPadPrimitives.append(GrTextBox().from_sexpr(primitive))
@@ -573,20 +574,21 @@ class Pad():
 
         layers = ' (layers'
         for layer in self.layers:
-            # For some reason KiCad does not escape a layer with double-quotes if it has a
-            # wildcard (*) or an ampersant (&) in it
-            if "*." in layer or "&" in layer:
-                layers += f' {layer}'
-            else:
-                layers += f' "{dequote(layer)}"'
+            layers += f' "{dequote(layer)}"'
 
         layers += ')'
 
         locked = '(locked yes)' if self.locked else ''
         drill = f' {self.drill.to_sexpr()}' if self.drill is not None else ''
         ppty = f' (property {self.property})' if self.property is not None else ''
-        rul = ' (remove_unused_layers)' if self.removeUnusedLayers else ''
-        kel = ' (keep_end_layers)' if self.keepEndLayers else ''
+        if self.removeUnusedLayers is not None:
+            rul = ' (remove_unused_layers yes)' if self.removeUnusedLayers else ' (remove_unused_layers no)'
+        else:
+            rul = ''
+        if self.keepEndLayers is not None:
+            kel = ' (keep_end_layers yes)' if self.keepEndLayers else ' (keep_end_layers no)'
+        else:
+            kel = ''
         rrr = f' (roundrect_rratio {self.roundrectRatio})' if self.roundrectRatio is not None else ''
 
         net = f' {self.net.to_sexpr()}' if self.net is not None else ''
@@ -659,11 +661,10 @@ class Pad():
             expression += f'\n{indents}  {self.customPadOptions.to_sexpr()}'
 
         if self.customPadPrimitives is not None:
-            if len(self.customPadPrimitives) > 0:
-                expression += f'\n{indents}  (primitives'
-                for primitive in self.customPadPrimitives:
-                    expression += f'\n{primitive.to_sexpr(newline=False,indent=indent+4)}'
-                expression += f'\n{indents}  )'
+            expression += f'\n{indents}  (primitives'
+            for primitive in self.customPadPrimitives:
+                expression += f'\n{primitive.to_sexpr(newline=False,indent=indent+4)}'
+            expression += f'\n{indents}  )'
 
         expression += f'{uuid}){endline}'
         return expression
