@@ -123,9 +123,9 @@ class FpText():
         ko = ' knockout' if self.knockout else ''
 
         expression =  f'{indents}(fp_text {self.type} "{dequote(self.text)}" (at {self.position.X} {self.position.Y}{posA}{unlocked}) (layer "{dequote(self.layer)}"{ko}){hide}\n'
-        expression += f'{indents}  {self.effects.to_sexpr()}'
         if self.uuid is not None:
             expression += f'{indents}  (uuid "{dequote(self.uuid)}")\n'
+        expression += f'{indents}  {self.effects.to_sexpr()}'
         if self.renderCache is not None:
             expression += self.renderCache.to_sexpr(indent+2)
         expression += f'{indents}){endline}'
@@ -219,7 +219,7 @@ class FpLine():
         else:
             width = ''
 
-        return f'{indents}(fp_line (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (layer "{dequote(self.layer)}"){width}{locked}{uuid}){endline}'
+        return f'{indents}(fp_line (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) {width}{locked} (layer "{dequote(self.layer)}") {uuid}){endline}'
 
 @dataclass
 class FpRect():
@@ -315,7 +315,7 @@ class FpRect():
         else:
             width = ''
 
-        return f'{indents}(fp_rect (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (layer "{dequote(self.layer)}"){width}{fill}{locked}{uuid}){endline}'
+        return f'{indents}(fp_rect (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) {width}{fill}{locked} (layer "{dequote(self.layer)}") {uuid}){endline}'
 
 @dataclass
 class FpTextBox():
@@ -551,7 +551,7 @@ class FpCircle():
         else:
             width = ''
 
-        return f'{indents}(fp_circle (center {self.center.X} {self.center.Y}) (end {self.end.X} {self.end.Y}) (layer "{dequote(self.layer)}"){width}{fill}{locked}{uuid}){endline}'
+        return f'{indents}(fp_circle (center {self.center.X} {self.center.Y}) (end {self.end.X} {self.end.Y}) {width}{fill} (layer "{dequote(self.layer)}") {locked}{uuid}){endline}'
 
 @dataclass
 class FpArc():
@@ -645,7 +645,7 @@ class FpArc():
         else:
             width = ''
 
-        return f'{indents}(fp_arc (start {self.start.X} {self.start.Y}) (mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}) (layer "{dequote(self.layer)}"){width}{locked}{uuid}){endline}'
+        return f'{indents}(fp_arc (start {self.start.X} {self.start.Y}) (mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}) {width}{locked} (layer "{dequote(self.layer)}") {uuid}){endline}'
 
 @dataclass
 class FpPoly():
@@ -746,7 +746,7 @@ class FpPoly():
         expression = f'{indents}(fp_poly (pts\n'
         for point in self.coordinates:
             expression += f'{indents}    (xy {point.X} {point.Y})\n'
-        expression += f'{indents}  ) (layer "{dequote(self.layer)}"){width}{fill}{locked}{uuid}){endline}'
+        expression += f'{indents}  ) {width}{fill}{locked} (layer "{dequote(self.layer)}") {uuid}){endline}'
         return expression
 
 @dataclass
