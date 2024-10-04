@@ -1108,13 +1108,13 @@ class Via():
     """The ``layers`` token define the canonical layer set the via connects as a list
     of strings"""
 
-    removeUnusedLayers: bool = False
+    removeUnusedLayers: Optional[bool] = None
     """The ``removeUnusedLayers`` token is undocumented (as of 20.02.2022)"""
 
-    keepEndLayers: bool = False
+    keepEndLayers: Optional[bool] = None
     """The ``keepEndLayers`` token is undocumented (as of 20.02.2022)"""
 
-    free: bool = False
+    free: Optional[bool] = None
     """The ``free`` token indicates that the via is free to be moved outside it's assigned net"""
 
     net: int = 0
@@ -1123,6 +1123,8 @@ class Via():
 
     uuid: Optional[str] =""
     """The optional ``uuid`` defines the universally unique identifier"""
+
+    zoneLayerConnections: Optional[List[str]] = None
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Via:
@@ -1156,11 +1158,16 @@ class Via():
             if item[0] == 'layers':
                 for layer in item[1:]:
                     object.layers.append(layer)
-            if item[0] == 'remove_unused_layers': object.removeUnusedLayers = True
-            if item[0] == 'keep_end_layers': object.keepEndLayers = True
-            if item[0] == 'free': object.free = True
+            if item[0] == 'remove_unused_layers': object.removeUnusedLayers = True if item[1] == 'yes' else False
+            if item[0] == 'keep_end_layers': object.keepEndLayers = True if item[1] == 'yes' else False
+            if item[0] == 'free': object.free = True if item[1] == 'yes' else False
             if item[0] == 'net': object.net = item[1]
             if item[0] == 'uuid': object.uuid = item[1]
+            if item[0] == 'zone_layer_connections':
+                object.zoneLayerConnections = []
+                for layer in item[1:]:
+                    object.zoneLayerConnections.append(layer)
+
         return object
 
     def to_sexpr(self, indent=2, newline=True) -> str:
@@ -1182,12 +1189,29 @@ class Via():
         layers = ''
         for layer in self.layers:
             layers += f' "{dequote(layer)}"'
-        rum = f' (remove_unused_layers)' if self.removeUnusedLayers else ''
-        kel = f' (keep_end_layers)' if self.keepEndLayers else ''
-        free = f' (free)' if self.free else ''
+
+        zlc = ''
+        if self.zoneLayerConnections is not None:
+            zlc += ' (zone_layer_connections'
+            for layer in self.zoneLayerConnections:
+                zlc += f' "{dequote(layer)}"'
+            zlc += ')'
+
+        if self.removeUnusedLayers is not None:
+            rum = f' (remove_unused_layers yes)' if self.removeUnusedLayers else ' (remove_unused_layers no)'
+        else:
+            rum = ''
+        if self.keepEndLayers is not None:
+            kel = f' (keep_end_layers yes)' if self.keepEndLayers else '(keep_end_layers no)'
+        else:
+            kel = ''
+        if self.free is not None:
+            free = f' (free yes)' if self.free else ' (free no)'
+        else:
+            free = ''
         uuid = f' (uuid "{dequote(self.uuid)}")' if self.uuid is not None else ''
 
-        return f'{indents}(via{type}{locked} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){rum}{kel}{free} (net {self.net}){uuid}){endline}'
+        return f'{indents}(via{type}{locked} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){rum}{kel}{free} {zlc}(net {self.net}){uuid}){endline}'
 
 @dataclass
 class Arc():
