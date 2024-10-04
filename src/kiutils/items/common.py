@@ -290,10 +290,10 @@ class Font():
     thickness: Optional[float] = None
     """The 'thickness' token attribute defines the line thickness of the font"""
 
-    bold: bool = False
+    bold: Optional[bool] = None
     """The 'bold' token specifies if the font should be bold"""
 
-    italic: bool = False
+    italic: Optional[bool] = None
     """The 'italic' token specifies if the font should be italicized"""
 
     lineSpacing: Optional[float] = None
@@ -327,10 +327,8 @@ class Font():
 
         object = cls()
         for item in exp:
-            if type(item) != type([]):
-                if item == 'bold': object.bold = True
-                if item == 'italic': object.italic = True
-                continue
+            if item[0] == 'bold': object.bold = sexpr.parse_bool(item)
+            if item[0] == 'italic': object.italic = sexpr.parse_bool(item)
             if item[0] == 'face': object.face = item[1]
             if item[0] == 'size':
                 object.height = item[1]
@@ -356,8 +354,8 @@ class Font():
 
         if self.face is not None:        face_name = f'(face "{dequote(self.face)}") '
         if self.thickness is not None:   thickness = f' (thickness {self.thickness})'
-        if self.bold == True:            bold = ' bold'
-        if self.italic == True:          italic = ' italic'
+        if self.bold is not None:            bold = f' (bold yes)' if self.bold else f' (bold no)'
+        if self.italic is not None:          italic = f' (italic yes)' if self.italic else f' (italic no)'
         if self.lineSpacing is not None: linespacing = f' (line_spacing {self.lineSpacing})'
         if self.color is not None:       color = f' {self.color.to_sexpr()}'
 
