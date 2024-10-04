@@ -68,6 +68,8 @@ class FpText():
     
     Available since KiCad v7"""
 
+    unlocked: Optional[bool] = None
+
     @classmethod
     def from_sexpr(cls, exp: list) -> FpText:
         """Convert the given S-Expresstion into a FpText object
@@ -102,6 +104,7 @@ class FpText():
             if item[0] == 'effects': object.effects = Effects().from_sexpr(item)
             if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'render_cache': object.renderCache = RenderCache.from_sexpr(item)
+            if item[0] == 'unlocked': object.unlocked = sexpr.parse_bool(item)
         return object
 
     def to_sexpr(self, indent: int = 2, newline: bool = True) -> str:
@@ -118,11 +121,14 @@ class FpText():
         endline = '\n' if newline else ''
 
         hide = ' ( hide yes )' if self.hide else ''
-        unlocked = ' unlocked' if self.position.unlocked else ''
+        if self.unlocked is not None:
+            unlocked = ' (unlocked yes)' if self.unlocked else '(unlocked no)'
+        else:
+            unlocked = ''
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         ko = ' knockout' if self.knockout else ''
 
-        expression =  f'{indents}(fp_text {self.type} "{dequote(self.text)}" (at {self.position.X} {self.position.Y}{posA}{unlocked}) (layer "{dequote(self.layer)}"{ko}){hide}\n'
+        expression =  f'{indents}(fp_text {self.type} "{dequote(self.text)}" (at {self.position.X} {self.position.Y}{posA}) {unlocked} (layer "{dequote(self.layer)}"{ko}){hide}\n'
         if self.uuid is not None:
             expression += f'{indents}  (uuid "{dequote(self.uuid)}")\n'
         expression += f'{indents}  {self.effects.to_sexpr()}'
