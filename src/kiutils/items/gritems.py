@@ -284,7 +284,7 @@ class GrLine():
     layer: Optional[str] = None
     """The ``layer`` token defines the canonical layer the rectangle resides on"""
 
-    width: Optional[float] = 0.12     # Used for KiCad < 7
+    width: Optional[float] = None     # Used for KiCad < 7
     """The ``width`` token defines the line width of the rectangle. (prior to version 7)"""
 
     uuid: Optional[str] = None
@@ -345,8 +345,9 @@ class GrLine():
         uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
         layer =  f' (layer "{dequote(self.layer)}")' if self.layer is not None else ''
         angle = f' (angle {self.angle}' if self.angle is not None else ''
+        width = f' (width {self.width})' if self.width is not None else  ''
 
-        return f'{indents}(gr_line (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}){angle}{locked}{stroke}{layer} (width {self.width}){uuid}){endline}'
+        return f'{indents}(gr_line (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}){angle}{locked}{stroke}{layer}{width}{uuid}){endline}'
 
 @dataclass
 class GrRect():
@@ -365,7 +366,7 @@ class GrRect():
     layer: Optional[str] = None
     """The ``layer`` token defines the canonical layer the rectangle resides on"""
 
-    width: Optional[float] = 0.12     # Used for KiCad < 7
+    width: Optional[float] = None     # Used for KiCad < 7
     """The ``width`` token defines the line width of the rectangle. (prior to version 7)"""
 
     fill: Optional[str] = None
@@ -430,8 +431,9 @@ class GrRect():
         uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
         layer =  f' (layer "{dequote(self.layer)}")' if self.layer is not None else ''
         fill = f' (fill {self.fill})' if self.fill is not None else ''
+        width = f' (width {self.width})' if self.width is not None else ''
 
-        return f'{indents}(gr_rect (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) {locked} {stroke} {layer} (width {self.width}){fill}{uuid}){endline}'
+        return f'{indents}(gr_rect (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) {locked} {stroke} {fill} {layer} {width}{uuid}){endline}'
 
 @dataclass
 class GrCircle():
@@ -450,7 +452,7 @@ class GrCircle():
     layer: Optional[str] = None
     """The ``layer`` token defines the canonical layer the circle resides on"""
 
-    width: Optional[float] = 0.12     # Used for KiCad < 7
+    width: Optional[float] = None # Used for KiCad < 7
     """The ``width`` token defines the line width of the circle. (prior to version 7)"""
 
     fill: Optional[str] = None
@@ -517,8 +519,9 @@ class GrCircle():
         layer =  f' (layer "{dequote(self.layer)}")' if self.layer is not None else ''
         fill = f' (fill {self.fill})' if self.fill is not None else ''
         stroke = self.stroke.to_sexpr(indent+2) if self.stroke is not None else ''
+        width = f' (width {self.width})' if self.width is not None else '' 
 
-        return f'{indents}(gr_circle (center {self.center.X} {self.center.Y}) (end {self.end.X} {self.end.Y}) {locked} {stroke} {layer} (width {self.width}){fill}{uuid}){endline}'
+        return f'{indents}(gr_circle (center {self.center.X} {self.center.Y}) (end {self.end.X} {self.end.Y}) {locked} {stroke} {fill}{layer}  {width}{uuid}){endline}'
 
 @dataclass
 class GrArc():
@@ -540,7 +543,7 @@ class GrArc():
     layer: Optional[str] = None
     """The ``layer`` token defines the canonical layer the arc resides on"""
 
-    width: Optional[float] = 0.12     # Used for KiCad < 7
+    width: Optional[float] = None     # Used for KiCad < 7
     """The ``width`` token defines the line width of the arc. (prior to version 7)"""
 
     uuid: Optional[str] = None
@@ -603,8 +606,9 @@ class GrArc():
         stroke = self.stroke.to_sexpr(indent+2) if self.stroke is not None else ''
         uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
         layer =  f' (layer "{dequote(self.layer)}")' if self.layer is not None else ''
+        width = f' (width {self.width})' if self.width is not None else ''
 
-        return f'{indents}(gr_arc (start {self.start.X} {self.start.Y}) (mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}) {locked} {stroke} {layer} (width {self.width}){uuid}){endline}'
+        return f'{indents}(gr_arc (start {self.start.X} {self.start.Y}) (mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}) {width} {locked} {stroke} {layer} {uuid}){endline}'
 
 @dataclass
 class GrPoly():
