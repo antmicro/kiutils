@@ -1039,8 +1039,6 @@ class Footprint():
             expression += f'{indents}  (descr "{dequote(self.description)}")\n'
         if self.tags is not None:
             expression += f'{indents}  (tags "{dequote(self.tags)}")\n'
-        if self.path is not None:
-            expression += f'{indents}  (path "{dequote(self.path)}")\n'
 
         # Additional parameters used in board
         if self.autoplaceCost90 is not None:
@@ -1051,8 +1049,6 @@ class Footprint():
             expression += f'{indents}  (solder_mask_margin {self.solderMaskMargin})\n'
         if self.solderPasteMargin is not None:
             expression += f'{indents}  (solder_paste_margin {self.solderPasteMargin})\n'
-        if self.solderPasteRatio is not None:
-            expression += f'{indents}  (solder_paste_ratio {self.solderPasteRatio})\n'
         if self.clearance is not None:
             expression += f'{indents}  (clearance {self.clearance})\n'
         if self.zoneConnect is not None:
@@ -1062,11 +1058,6 @@ class Footprint():
         if self.thermalGap is not None:
             expression += f'{indents}  (thermal_gap {self.thermalGap})\n'
 
-        if self.attributes is not None:
-            # Note: If the attribute object has only standard values in it, it will return an
-            #       empty string. Therefore, it should create its own newline and indentations only
-            #       when needed.
-            expression += self.attributes.to_sexpr(indent=indent+2, newline=True)
         if self.privateLayers:
             expression += f'{indents}  (private_layers'
             for item in self.privateLayers:
@@ -1081,15 +1072,24 @@ class Footprint():
             
         for item in self.properties:
             expression += item.to_sexpr(indent=indent+2)
+        if self.path is not None:
+            expression += f'{indents}  (path "{dequote(self.path)}")\n'
+        if self.solderPasteRatio is not None:
+            expression += f'{indents}  (solder_paste_ratio {self.solderPasteRatio})\n'
+        if self.attributes is not None:
+            # Note: If the attribute object has only standard values in it, it will return an
+            #       empty string. Therefore, it should create its own newline and indentations only
+            #       when needed.
+            expression += self.attributes.to_sexpr(indent=indent+2, newline=True)
         for item in self.graphicItems:
             expression += item.to_sexpr(indent=indent+2)
         for item in self.pads:
             expression += item.to_sexpr(indent=indent+2)
         for item in self.zones:
             expression += item.to_sexpr(indent=indent+2)
-        for item in self.models:
-            expression += item.to_sexpr(indent=indent+2)
         for item in self.groups:
+            expression += item.to_sexpr(indent=indent+2)
+        for item in self.models:
             expression += item.to_sexpr(indent=indent+2)
 
         expression += f'{indents}){endline}'
