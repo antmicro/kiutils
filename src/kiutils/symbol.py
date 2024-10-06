@@ -355,6 +355,8 @@ class Symbol():
     units: List[Symbol] = field(default_factory=list)
     """The ``units`` can be one or more child symbol tokens embedded in a parent symbol"""
 
+    excludeFromSim: Optional[bool] = None
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Symbol:
         """Convert the given S-Expression into a Symbol object
@@ -404,6 +406,7 @@ class Symbol():
             if item[0] == 'rectangle': object.graphicItems.append(SyRect().from_sexpr(item))
             if item[0] == 'text': object.graphicItems.append(SyText().from_sexpr(item))
             if item[0] == 'text_box': object.graphicItems.append(SyTextBox().from_sexpr(item))
+            if item[0] == 'exclude_from_sim': object.excludeFromSim = sexpr.parse_bool(item)
 
         return object
 
@@ -452,7 +455,7 @@ class Symbol():
         """
         indents = ' '*indent
         endline = '\n' if newline else ''
-        obtext, ibtext = '', ''
+        obtext, ibtext, exclude_sim = '', '', ''
 
         if self.inBom is not None:
             ibtext = 'yes' if self.inBom else 'no'
@@ -466,8 +469,10 @@ class Symbol():
         pinnames = f' (pin_names{pnoffset}{pnhide})' if self.pinNames else ''
         pinnumbers = f' (pin_numbers hide)' if self.hidePinNumbers else ''
         extends = f' (extends "{dequote(self.extends)}")' if self.extends is not None else ''
+        if self.excludeFromSim is not None:
+            exclude_sim = '(exclude_from_sim yes)' if self.excludeFromSim else '(exclude_from_sim no)'
 
-        expression =  f'{indents}(symbol "{dequote(self.libId)}"{extends}{power}{pinnumbers}{pinnames}{inbom}{onboard}\n'
+        expression =  f'{indents}(symbol "{dequote(self.libId)}" {extends}{power}{pinnumbers}{pinnames}{exclude_sim}{inbom}{onboard}\n'
         for item in self.properties:
             expression += item.to_sexpr(indent+2)
         for item in self.graphicItems:

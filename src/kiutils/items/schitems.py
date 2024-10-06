@@ -21,6 +21,7 @@ from typing import Optional, List, Dict
 
 from kiutils.items.common import Fill, Position, ColorRGBA, ProjectInstance, Stroke, Effects, Property
 from kiutils.utils.strings import dequote
+from kiutils.utils import sexpr
 
 @dataclass
 class Junction():
@@ -448,6 +449,8 @@ class Text():
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
 
+    excludeFromSim: Optional[bool] = None
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Text:
         """Convert the given S-Expresstion into a Text object
@@ -474,6 +477,7 @@ class Text():
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'effects': object.effects = Effects().from_sexpr(item)
             if item[0] == 'uuid': object.uuid = item[1]
+            if item[0] == 'exclude_from_sim': object.excludeFromSim = sexpr.parse_bool(item)
         return object
 
     def to_sexpr(self, indent=2, newline=True) -> str:
@@ -498,6 +502,8 @@ class Text():
             expression += f'\n{indents}  '
         else:
             expression += ' '
+        if self.excludeFromSim is not None:
+            expression += '(exclude_from_sim yes)' if self.excludeFromSim else '(exclude_from_sim no)'
         expression += f'(at {self.position.X} {self.position.Y}{posA})\n'
         expression += self.effects.to_sexpr(indent+2)
         if self.uuid is not None:
@@ -611,7 +617,7 @@ class LocalLabel():
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
 
-    fieldsAutoplaced: bool = False
+    fieldsAutoPlaced: Optional[bool] = None
     """The ``fields_autoplaced`` is a flag that indicates that any PROPERTIES associated
     with the global label have been place automatically"""
 
@@ -641,7 +647,7 @@ class LocalLabel():
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'effects': object.effects = Effects().from_sexpr(item)
             if item[0] == 'uuid': object.uuid = item[1]
-            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = True
+            if item[0] == 'fields_autoplaced': object.fieldsAutoPlaced = sexpr.parse_bool(item)
         return object
 
     def to_sexpr(self, indent=2, newline=True) -> str:
@@ -658,9 +664,11 @@ class LocalLabel():
         endline = '\n' if newline else ''
 
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
-        fieldsAutoplaced = ' (fields_autoplaced)' if self.fieldsAutoplaced else ''
+        fieldsAutoPlaced = ''
+        if self.fieldsAutoPlaced is not None:
+            fieldsAutoplaced = ' (fields_autoplaced yes)' if self.fieldsAutoPlaced else '(fields_autoplaced no)'
 
-        expression =  f'{indents}(label "{dequote(self.text)}" (at {self.position.X} {self.position.Y}{posA}){fieldsAutoplaced}\n'
+        expression =  f'{indents}(label "{dequote(self.text)}" (at {self.position.X} {self.position.Y}{posA}){fieldsAutoPlaced}\n'
         expression += self.effects.to_sexpr(indent+2)
         if self.uuid is not None:
             expression += f'{indents}  (uuid "{self.uuid}")\n'
@@ -682,7 +690,7 @@ class GlobalLabel():
     """The ``shape`` token defines the way the global label is drawn. Possible values are:
        ``input``, ``output``, ``bidirectional``, ``tri_state``, ``passive``."""
 
-    fieldsAutoplaced: bool = False
+    fieldsAutoplaced: Optional[bool] = None
     """The ``fields_autoplaced`` is a flag that indicates that any PROPERTIES associated
        with the global label have been place automatically"""
 
@@ -722,7 +730,7 @@ class GlobalLabel():
         object = cls()
         object.text = exp[1]
         for item in exp[2:]:
-            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = True
+            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = sexpr.parse_bool(item)
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'effects': object.effects = Effects().from_sexpr(item)
             if item[0] == 'property': object.properties.append(Property().from_sexpr(item))
@@ -744,7 +752,9 @@ class GlobalLabel():
         endline = '\n' if newline else ''
 
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
-        fa = ' (fields_autoplaced)' if self.fieldsAutoplaced else ''
+        fa = ''
+        if self.fieldsAutoplaced is not None:
+            fa = ' (fields_autoplaced yes)' if self.fieldsAutoplaced else '(fields_autoplaced no)'
 
         expression =  f'{indents}(global_label "{dequote(self.text)}" (shape {self.shape}) (at {self.position.X} {self.position.Y}{posA}){fa}\n'
         expression += self.effects.to_sexpr(indent+2)
@@ -780,7 +790,7 @@ class HierarchicalLabel():
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
     
-    fieldsAutoplaced: bool = False
+    fieldsAutoplaced: Optional[bool] = None
     """The ``fields_autoplaced`` is a flag that indicates that any PROPERTIES associated
     with the global label have been place automatically"""
 
@@ -811,7 +821,7 @@ class HierarchicalLabel():
             if item[0] == 'effects': object.effects = Effects().from_sexpr(item)
             if item[0] == 'shape': object.shape = item[1]
             if item[0] == 'uuid': object.uuid = item[1]
-            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = True
+            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = sexpr.parse_bool(item)
         return object
 
     def to_sexpr(self, indent=2, newline=True) -> str:
@@ -828,7 +838,9 @@ class HierarchicalLabel():
         endline = '\n' if newline else ''
 
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
-        fieldsAutoplaced = ' (fields_autoplaced)' if self.fieldsAutoplaced else ''
+        fieldsAutoplaced = ''
+        if fieldsAutoplaced is not None:
+            fieldsAutoplaced = ' (fields_autoplaced yes)' if self.fieldsAutoplaced else '(fields_autoplaced no)'
 
         expression =  f'{indents}(hierarchical_label "{dequote(self.text)}" (shape {self.shape}) (at {self.position.X} {self.position.Y}{posA}){fieldsAutoplaced}\n'
         expression += self.effects.to_sexpr(indent+2)
@@ -1038,7 +1050,7 @@ class SchematicSymbol():
     
     Available since KiCad v7"""
 
-    fieldsAutoplaced: bool = False
+    fieldsAutoplaced: Optional[bool] = None
     """The ``fields_autoplaced`` is a flag that indicates that any PROPERTIES associated
     with the global label have been place automatically"""
 
@@ -1063,6 +1075,8 @@ class SchematicSymbol():
     
     Available since KiCad v7."""
 
+    excludeFromSim: Optional[bool] = None
+
     @classmethod
     def from_sexpr(cls, exp: list) -> SchematicSymbol:
         """Convert the given S-Expresstion into a SchematicSymbol object
@@ -1085,14 +1099,15 @@ class SchematicSymbol():
 
         object = cls()
         for item in exp[1:]:
-            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = True
+            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = sexpr.parse_bool(item)
+            if item[0] == 'exclude_from_sim': object.excludeFromSim = sexpr.parse_bool(item)
             if item[0] == 'lib_id': object.libId = item[1]
             if item[0] == 'lib_name': object.libName = item[1]
             if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'unit': object.unit = item[1]
-            if item[0] == 'in_bom': object.inBom = True if item[1] == 'yes' else False
-            if item[0] == 'on_board': object.onBoard = True if item[1] == 'yes' else False
-            if item[0] == 'dnp': object.dnp = True if item[1] == 'yes' else False
+            if item[0] == 'in_bom': object.inBom = sexpr.parse_bool(item)
+            if item[0] == 'on_board': object.onBoard = sexpr.parse_bool(item)
+            if item[0] == 'dnp': object.dnp = sexpr.parse_bool(item)
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'property': object.properties.append(Property().from_sexpr(item))
             if item[0] == 'pin': object.pins.update({item[1]: item[2][1]})
@@ -1117,18 +1132,24 @@ class SchematicSymbol():
         endline = '\n' if newline else ''
 
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
-        fa = f' (fields_autoplaced)' if self.fieldsAutoplaced else ''
+        fa = ''
+        if self.fieldsAutoplaced is not None:
+            fa = f' (fields_autoplaced yes)' if self.fieldsAutoplaced else '(fields_autoplaced no)'
+        excludeFromSim = ''
+        if self.excludeFromSim is not None:
+            excludeFromSim = '(exclude_from_sim yes)' if self.excludeFromSim else '(exclude_from_sim no)'
         inBom = 'yes' if self.inBom else 'no'
         onBoard = 'yes' if self.onBoard else 'no'
         mirror = f' (mirror {self.mirror})' if self.mirror is not None else ''
         unit = f' (unit {self.unit})' if self.unit is not None else ''
         lib_name = f' (lib_name "{dequote(self.libName)}")' if self.libName is not None else ''
+        
         if self.dnp is not None:
             dnp = ' (dnp yes)' if self.dnp else ' (dnp no)'
         else:
             dnp = ''
 
-        expression =  f'{indents}(symbol{lib_name} (lib_id "{dequote(self.libId)}") (at {self.position.X} {self.position.Y}{posA}){mirror}{unit}\n'
+        expression =  f'{indents}(symbol{lib_name} (lib_id "{dequote(self.libId)}") (at {self.position.X} {self.position.Y}{posA}){mirror}{unit}{excludeFromSim}\n'
         expression += f'{indents}  (in_bom {inBom}) (on_board {onBoard}){dnp}{fa}\n'
         if self.uuid:
             expression += f'{indents}  (uuid "{self.uuid}")\n'
@@ -1356,7 +1377,7 @@ class HierarchicalSheet():
     height: float = 0
     """The ``height`` token defines the height of the sheet"""
 
-    fieldsAutoplaced: bool = False
+    fieldsAutoplaced: Optional[bool] = None
     """The ``fields_autoplaced`` is a flag that indicates that any PROPERTIES associated
        with the global label have been place automatically"""
 
@@ -1413,7 +1434,7 @@ class HierarchicalSheet():
 
         object = cls()
         for item in exp[1:]:
-            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = True
+            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = sexpr.parse_bool(item)
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'stroke': object.stroke = Stroke().from_sexpr(item)
             if item[0] == 'size':
@@ -1447,7 +1468,9 @@ class HierarchicalSheet():
         indents = ' '*indent
         endline = '\n' if newline else ''
 
-        fa = ' (fields_autoplaced)' if self.fieldsAutoplaced else ''
+        fa = ''
+        if self.fieldsAutoplaced is not None:
+            fa = ' (fields_autoplaced yes)' if self.fieldsAutoplaced else '(fields_autoplaced no)'
 
         expression =  f'{indents}(sheet (at {self.position.X} {self.position.Y}) (size {self.width} {self.height}){fa}\n'
         expression += self.stroke.to_sexpr(indent+2)
@@ -1861,7 +1884,7 @@ class NetclassFlag():
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier"""
 
-    fieldsAutoplaced: bool = False
+    fieldsAutoplaced: Optional[bool] = None
     """The ``fields_autoplaced`` is a flag that indicates that any PROPERTIES associated
     with the netclas flag have been place automatically"""
 
@@ -1891,7 +1914,7 @@ class NetclassFlag():
             if item[0] == 'length': object.length = item[1]
             if item[0] == 'shape': object.shape = item[1]
             if item[0] == 'at': object.position = Position.from_sexpr(item)
-            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = True
+            if item[0] == 'fields_autoplaced': object.fieldsAutoplaced = sexpr.parse_bool(item)
             if item[0] == 'effects': object.effects = Effects.from_sexpr(item)
             if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'property': object.properties.append(Property.from_sexpr(item))
@@ -1911,7 +1934,9 @@ class NetclassFlag():
         endline = '\n' if newline else ''
 
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
-        fa = f' (fields_autoplaced)' if self.fieldsAutoplaced else ''
+        fa = ''
+        if self.fieldsAutoplaced is not None:
+            fa = f' (fields_autoplaced yes)' if self.fieldsAutoplaced else '(fields_autoplaced no)'
 
         expression =  f'{indents}(netclass_flag "{dequote(self.text)}" (length {self.length}) (shape {self.shape}) (at {self.position.X} {self.position.Y}{posA}){fa}\n'
         expression += self.effects.to_sexpr(indent+2)
