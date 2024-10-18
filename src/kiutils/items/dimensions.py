@@ -22,6 +22,7 @@ from typing import Optional, List
 from kiutils.items.common import Position
 from kiutils.items.gritems import GrText
 from kiutils.utils.strings import dequote
+from kiutils.utils import sexpr
 
 @dataclass
 class DimensionFormat():
@@ -280,7 +281,7 @@ class Dimension():
 
         object = cls()
         for item in exp[1:]:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'type': object.type = item[1]
             if item[0] == 'layer': object.layer = item[1]
             if item[0] == 'uuid': object.uuid = item[1]

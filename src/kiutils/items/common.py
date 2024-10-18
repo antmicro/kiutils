@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 
 from kiutils.utils.strings import dequote
+from kiutils.utils import sexpr
 
 @dataclass
 class Position():
@@ -479,7 +480,7 @@ class Effects():
 
         object = cls()
         for item in exp:
-            if item[0] == 'hide': object.hide = True if item[1] == 'yes' else False 
+            if item[0] == 'hide': object.hide = sexpr.parse_bool(item) 
             if item[0] == 'font': object.font = Font().from_sexpr(item)
             if item[0] == 'justify': object.justify = Justify().from_sexpr(item)
             if item[0] == 'href': object.href = item[1]
@@ -600,7 +601,7 @@ class Group():
         object.name = exp[1]
         for item in exp:
             if type(item) != type([]): continue
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'members':
                 for member in item[1:]:
@@ -1150,7 +1151,7 @@ class Image():
         expression =  f'{indents}(image (at {self.position.X} {self.position.Y}){layer}{scale}\n'
         if self.uuid is not None:
             expression += f'{indents}  (uuid "{self.uuid}")\n'
-        expression += f'{indents}  (data '
+        expression += f'{indents}  (data\n'
         for b64part in self.data:
             expression += f'{indents}    "{b64part}"\n'
         expression += f'{indents}  )\n'

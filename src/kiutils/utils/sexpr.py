@@ -3,6 +3,7 @@
 # Originally taken from: https://gitlab.com/kicad/libraries/kicad-library-utils/-/blob/master/common/sexpr.py
 
 import re
+from typing import List
 
 dbg = False
 
@@ -41,3 +42,11 @@ def parse_sexp(sexp):
             raise NotImplementedError("Error: %r" % (term, value))
     assert not stack, "Trouble with nesting of brackets"
     return out[0]
+
+
+def parse_bool(arr: List[str]) -> bool:
+    # KiCad8 syntax uses `(key "yes")`, but KiCad7 may use `(key "true")` or `key`
+    if len(arr) == 1 or arr[1] == "yes" or arr[1] == "true":
+        return True
+    else:
+        return False

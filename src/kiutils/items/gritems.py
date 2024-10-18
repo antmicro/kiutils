@@ -22,6 +22,7 @@ from typing import Optional, List
 
 from kiutils.items.common import Effects, Position, RenderCache, Stroke
 from kiutils.utils.strings import dequote
+from kiutils.utils import sexpr
 
 @dataclass
 class GrText():
@@ -83,7 +84,7 @@ class GrText():
         object = cls()
         object.text = exp[1]
         for item in exp[2:]:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'layer': 
                 object.layer = item[1]
@@ -212,7 +213,7 @@ class GrTextBox():
             if item[0] == 'effects': object.effects = Effects.from_sexpr(item)
             if item[0] == 'stroke': object.stroke = Stroke.from_sexpr(item)
             if item[0] == 'render_cache': object.renderCache = RenderCache.from_sexpr(item)
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
 
         return object
 
@@ -316,7 +317,7 @@ class GrLine():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'start': object.start = Position.from_sexpr(item)
             if item[0] == 'end': object.end = Position.from_sexpr(item)
             if item[0] == 'layer': object.layer = item[1]
@@ -397,7 +398,7 @@ class GrRect():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'start': object.start = Position.from_sexpr(item)
             if item[0] == 'end': object.end = Position.from_sexpr(item)
             if item[0] == 'layer': object.layer = item[1]
@@ -479,7 +480,7 @@ class GrCircle():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'center': object.center = Position.from_sexpr(item)
             if item[0] == 'end': object.end = Position.from_sexpr(item)
             if item[0] == 'layer': object.layer = item[1]
@@ -565,7 +566,7 @@ class GrArc():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'start': object.start = Position.from_sexpr(item)
             if item[0] == 'mid': object.mid = Position.from_sexpr(item)
             if item[0] == 'end': object.end = Position.from_sexpr(item)
@@ -648,7 +649,7 @@ class GrPoly():
         object = cls()
 
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'pts':
                 for point in item[1:]:
                     object.coordinates.append(Position().from_sexpr(point))
@@ -743,7 +744,7 @@ class GrCurve():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'pts':
                 for point in item[1:]:
                     object.coordinates.append(Position().from_sexpr(point))

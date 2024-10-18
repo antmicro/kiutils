@@ -22,6 +22,7 @@ from typing import Optional, List
 
 from kiutils.items.common import RenderCache, Stroke, Position, Effects
 from kiutils.utils.strings import dequote
+from kiutils.utils import sexpr
 
 # FIXME: Several classes have a ``stroke`` member. This feature will be introduced in KiCad 7 and
 #        has yet to be tested here.
@@ -91,7 +92,7 @@ class FpText():
         object.type = exp[1]
         object.text = exp[2]
         for item in exp[3:]:
-            if item[0] == 'hide': object.hide = True if item[1] == 'yes' else False
+            if item[0] == 'hide': object.hide = sexpr.parse_bool(item)
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'layer': 
                 object.layer = item[1]
@@ -183,7 +184,7 @@ class FpLine():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'start': object.start = Position.from_sexpr(item)
             if item[0] == 'end': object.end = Position.from_sexpr(item)
             if item[0] == 'layer': object.layer = item[1]
@@ -275,7 +276,7 @@ class FpRect():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'start': object.start = Position.from_sexpr(item)
             if item[0] == 'end': object.end = Position.from_sexpr(item)
             if item[0] == 'layer': object.layer = item[1]
@@ -394,7 +395,7 @@ class FpTextBox():
         object.text=exp[1]
 
         for item in exp[2:]:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'start': object.start = Position.from_sexpr(item)
             if item[0] == 'end': object.end = Position.from_sexpr(item)
             if item[0] == 'pts':
@@ -511,7 +512,7 @@ class FpCircle():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'center': object.center = Position.from_sexpr(item)
             if item[0] == 'end': object.end = Position.from_sexpr(item)
             if item[0] == 'layer': object.layer = item[1]
@@ -606,7 +607,7 @@ class FpArc():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'start': object.start = Position.from_sexpr(item)
             if item[0] == 'mid': object.mid = Position.from_sexpr(item)
             if item[0] == 'end': object.end = Position.from_sexpr(item)
@@ -699,7 +700,7 @@ class FpPoly():
         object = cls()
 
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'pts':
                 for point in item[1:]:
                     object.coordinates.append(Position().from_sexpr(point))
@@ -796,7 +797,7 @@ class FpCurve():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'pts':
                 for point in item[1:]:
                     object.coordinates.append(Position().from_sexpr(point))

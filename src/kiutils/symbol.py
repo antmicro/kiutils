@@ -389,8 +389,8 @@ class Symbol():
                         if property[0] == 'offset': object.pinNamesOffset = property[1]
                     else:
                         if property == 'hide': object.pinNamesHide = True
-            if item[0] == 'in_bom': object.inBom = True if item[1] == 'yes' else False
-            if item[0] == 'on_board': object.onBoard = True if item[1] == 'yes' else False
+            if item[0] == 'in_bom': object.inBom = sexpr.parse_bool(item)
+            if item[0] == 'on_board': object.onBoard = sexpr.parse_bool(item)
             if item[0] == 'power': object.isPower = True
 
             if item[0] == 'symbol': object.units.append(Symbol().from_sexpr(item))

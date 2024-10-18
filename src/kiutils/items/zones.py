@@ -21,6 +21,7 @@ from typing import Optional, List
 
 from kiutils.items.common import Position
 from kiutils.utils.strings import dequote
+from kiutils.utils import sexpr
 
 @dataclass
 class KeepoutSettings():
@@ -572,7 +573,7 @@ class Zone():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'net': object.net = item[1]
             if item[0] == 'net_name': object.netName = item[1]
             if item[0] == 'layers' or item[0] == 'layer':

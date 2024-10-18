@@ -808,7 +808,7 @@ class Segment():
 
         object = cls()
         for item in exp:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'start': object.start = Position().from_sexpr(item)
             if item[0] == 'end': object.end = Position().from_sexpr(item)
             if item[0] == 'width': object.width = item[1]
@@ -902,7 +902,7 @@ class Via():
             if type(item) != type([]):
                 if item == 'micro' or item == 'blind': object.type = item
                 continue
-            if item == ['locked', 'yes']: object.locked=True
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'size': object.size = item[1]
             if item[0] == 'drill': object.drill = item[1]
@@ -974,6 +974,7 @@ class Arc():
     of. Defaults to 0."""
 
     uuid: Optional[str] = None
+    """The optional ``uuid`` defines the universally unique identifier"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Arc:
@@ -997,14 +998,14 @@ class Arc():
 
         object = cls()
         for item in exp:
-            if item == ['locked', 'yes']: object.locked=True
-            if item[0] == 'start': object.start = Position().from_sexpr(item)
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
+            elif item[0] == 'start': object.start = Position().from_sexpr(item)
             elif item[0] == 'mid': object.mid = Position().from_sexpr(item)
             elif item[0] == 'end': object.end = Position().from_sexpr(item)
             elif item[0] == 'width': object.width = item[1]
             elif item[0] == 'layer': object.layer = item[1]
             elif item[0] == 'net': object.net = item[1]
-            if item[0] == 'uuid': object.uuid = item[1]
+            elif item[0] == 'uuid': object.uuid = item[1]
         return object
 
     def to_sexpr(self, indent=2, newline=True) -> str:
@@ -1028,7 +1029,6 @@ class Arc():
         expression += f'(width {self.width}) (layer "{dequote(self.layer)}") '
         expression += f'(net {self.net}){uuid}){endline}'
         return expression
-
 
 @dataclass
 class Target():
@@ -1054,6 +1054,7 @@ class Target():
     """The ``layer`` token sets the canonical layer where the target marker resides"""
 
     uuid: Optional[str] = None
+    """The optional ``uuid`` defines the universally unique identifier"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Target:

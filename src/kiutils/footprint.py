@@ -512,7 +512,7 @@ class Pad():
         object.shape = exp[3]
 
         for item in exp[3:]:
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'size': object.size = Position().from_sexpr(item)
             if item[0] == 'drill': object.drill = DrillDefinition().from_sexpr(item)
@@ -866,7 +866,7 @@ class Footprint():
             if not isinstance(item, list):
                 if item == 'placed': object.placed = True
                 continue
-            if item[0] == 'locked': object.locked = True if item[1] == 'yes' else False
+            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'version': object.version = item[1]
             if item[0] == 'generator': object.generator = item[1]
             if item[0] == 'layer': object.layer = item[1]
@@ -1094,4 +1094,3 @@ class Footprint():
 
         expression += f'{indents}){endline}'
         return expression
-
