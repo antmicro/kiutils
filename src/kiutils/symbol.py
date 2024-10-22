@@ -356,6 +356,7 @@ class Symbol():
     """The ``units`` can be one or more child symbol tokens embedded in a parent symbol"""
 
     excludeFromSim: Optional[bool] = None
+    """The ``excludeFromSim`` indicates that component should not be taken into account during simulation"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Symbol:

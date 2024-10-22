@@ -373,6 +373,8 @@ class PolyLine():
     """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
 
     fill: Optional[Fill] = None
+    """The ``fill`` token attribute define how the line is filled"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> PolyLine:
         """Convert the given S-Expresstion into a PolyLine object
@@ -450,6 +452,7 @@ class Text():
     """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
 
     excludeFromSim: Optional[bool] = None
+    """The ``excludeFromSim`` indicates that text should not be taken into account during simulation"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Text:
@@ -1076,6 +1079,7 @@ class SchematicSymbol():
     Available since KiCad v7."""
 
     excludeFromSim: Optional[bool] = None
+    """The ``excludeFromSim`` indicates that component should not be taken into account during simulation"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> SchematicSymbol:
