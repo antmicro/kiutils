@@ -471,7 +471,7 @@ class Symbol():
         pinnumbers = f' (pin_numbers hide)' if self.hidePinNumbers else ''
         extends = f' (extends "{dequote(self.extends)}")' if self.extends is not None else ''
         if self.excludeFromSim is not None:
-            exclude_sim = '(exclude_from_sim yes)' if self.excludeFromSim else '(exclude_from_sim no)'
+            exclude_sim = ' (exclude_from_sim yes)' if self.excludeFromSim else ' (exclude_from_sim no)'
 
         expression =  f'{indents}(symbol "{dequote(self.libId)}" {extends}{power}{pinnumbers}{pinnames}{exclude_sim}{inbom}{onboard}\n'
         for item in self.properties:

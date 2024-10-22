@@ -427,7 +427,7 @@ class PolyLine():
         if self.fill is not None:
             expression += self.fill.to_sexpr(indent+2)
         if self.uuid is not None:
-            expression += f'{indents}  (uuid "{dequote(self.uuid)}")\n'
+            expression += f'{indents}  (uuid "{self.uuid}")\n'
         expression += f'{indents}){endline}'
         return expression
 
@@ -506,7 +506,7 @@ class Text():
         else:
             expression += ' '
         if self.excludeFromSim is not None:
-            expression += '(exclude_from_sim yes)' if self.excludeFromSim else '(exclude_from_sim no)'
+            expression += ' (exclude_from_sim yes)' if self.excludeFromSim else ' (exclude_from_sim no)'
         expression += f'(at {self.position.X} {self.position.Y}{posA})\n'
         expression += self.effects.to_sexpr(indent+2)
         if self.uuid is not None:
@@ -669,7 +669,7 @@ class LocalLabel():
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         fieldsAutoPlaced = ''
         if self.fieldsAutoPlaced is not None:
-            fieldsAutoplaced = ' (fields_autoplaced yes)' if self.fieldsAutoPlaced else '(fields_autoplaced no)'
+            fieldsAutoplaced = ' (fields_autoplaced yes)' if self.fieldsAutoPlaced else ' (fields_autoplaced no)'
 
         expression =  f'{indents}(label "{dequote(self.text)}" (at {self.position.X} {self.position.Y}{posA}){fieldsAutoPlaced}\n'
         expression += self.effects.to_sexpr(indent+2)
@@ -757,7 +757,7 @@ class GlobalLabel():
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         fa = ''
         if self.fieldsAutoplaced is not None:
-            fa = ' (fields_autoplaced yes)' if self.fieldsAutoplaced else '(fields_autoplaced no)'
+            fa = ' (fields_autoplaced yes)' if self.fieldsAutoplaced else ' (fields_autoplaced no)'
 
         expression =  f'{indents}(global_label "{dequote(self.text)}" (shape {self.shape}) (at {self.position.X} {self.position.Y}{posA}){fa}\n'
         expression += self.effects.to_sexpr(indent+2)
@@ -843,7 +843,7 @@ class HierarchicalLabel():
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         fieldsAutoplaced = ''
         if fieldsAutoplaced is not None:
-            fieldsAutoplaced = ' (fields_autoplaced yes)' if self.fieldsAutoplaced else '(fields_autoplaced no)'
+            fieldsAutoplaced = ' (fields_autoplaced yes)' if self.fieldsAutoplaced else ' (fields_autoplaced no)'
 
         expression =  f'{indents}(hierarchical_label "{dequote(self.text)}" (shape {self.shape}) (at {self.position.X} {self.position.Y}{posA}){fieldsAutoplaced}\n'
         expression += self.effects.to_sexpr(indent+2)
@@ -1138,10 +1138,10 @@ class SchematicSymbol():
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         fa = ''
         if self.fieldsAutoplaced is not None:
-            fa = f' (fields_autoplaced yes)' if self.fieldsAutoplaced else '(fields_autoplaced no)'
+            fa = f' (fields_autoplaced yes)' if self.fieldsAutoplaced else ' (fields_autoplaced no)'
         excludeFromSim = ''
         if self.excludeFromSim is not None:
-            excludeFromSim = '(exclude_from_sim yes)' if self.excludeFromSim else '(exclude_from_sim no)'
+            excludeFromSim = ' (exclude_from_sim yes)' if self.excludeFromSim else ' (exclude_from_sim no)'
         inBom = 'yes' if self.inBom else 'no'
         onBoard = 'yes' if self.onBoard else 'no'
         mirror = f' (mirror {self.mirror})' if self.mirror is not None else ''
@@ -1474,7 +1474,7 @@ class HierarchicalSheet():
 
         fa = ''
         if self.fieldsAutoplaced is not None:
-            fa = ' (fields_autoplaced yes)' if self.fieldsAutoplaced else '(fields_autoplaced no)'
+            fa = ' (fields_autoplaced yes)' if self.fieldsAutoplaced else ' (fields_autoplaced no)'
 
         expression =  f'{indents}(sheet (at {self.position.X} {self.position.Y}) (size {self.width} {self.height}){fa}\n'
         expression += self.stroke.to_sexpr(indent+2)
@@ -1940,7 +1940,7 @@ class NetclassFlag():
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         fa = ''
         if self.fieldsAutoplaced is not None:
-            fa = f' (fields_autoplaced yes)' if self.fieldsAutoplaced else '(fields_autoplaced no)'
+            fa = f' (fields_autoplaced yes)' if self.fieldsAutoplaced else ' (fields_autoplaced no)'
 
         expression =  f'{indents}(netclass_flag "{dequote(self.text)}" (length {self.length}) (shape {self.shape}) (at {self.position.X} {self.position.Y}{posA}){fa}\n'
         expression += self.effects.to_sexpr(indent+2)
