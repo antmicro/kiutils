@@ -294,6 +294,8 @@ class GrLine():
     """The ``locked`` token defines if the object may be moved or not"""
 
     stroke: Optional[Stroke] = None
+    """The optional ``stroke`` token describes the style of an optional border to be drawn around 
+    the text box"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> GrLine:
@@ -376,6 +378,9 @@ class GrRect():
     """The ``locked`` token defines if the object may be moved or not"""
 
     stroke: Optional[Stroke] = None
+    """The optional ``stroke`` token describes the style of an optional border to be drawn around 
+    the text box"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> GrRect:
         """Convert the given S-Expresstion into a GrRect object
@@ -458,6 +463,9 @@ class GrCircle():
     """The ``locked`` token defines if the object may be moved or not"""
 
     stroke: Optional[Stroke] = None
+    """The optional ``stroke`` token describes the style of an optional border to be drawn around 
+    the text box"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> GrCircle:
         """Convert the given S-Expresstion into a GrCircle object
@@ -542,6 +550,8 @@ class GrArc():
     """The ``locked`` token defines if the object may be moved or not"""
 
     stroke: Optional[Stroke] = None
+    """The optional ``stroke`` token describes the style of an optional border to be drawn around 
+    the text box"""
 
 
     @classmethod
