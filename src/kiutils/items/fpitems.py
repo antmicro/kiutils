@@ -69,6 +69,7 @@ class FpText():
     Available since KiCad v7"""
 
     unlocked: Optional[bool] = None
+    """The optional ``unlocked`` token defines if the object can be edited"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> FpText:
@@ -121,14 +122,13 @@ class FpText():
         endline = '\n' if newline else ''
 
         hide = ' ( hide yes )' if self.hide else ''
+        unlocked = ''
         if self.unlocked is not None:
-            unlocked = ' (unlocked yes)' if self.unlocked else '(unlocked no)'
-        else:
-            unlocked = ''
+            unlocked = ' (unlocked yes)' if self.unlocked else ' (unlocked no)'
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         ko = ' knockout' if self.knockout else ''
 
-        expression =  f'{indents}(fp_text {self.type} "{dequote(self.text)}" (at {self.position.X} {self.position.Y}{posA}) {unlocked} (layer "{dequote(self.layer)}"{ko}){hide}\n'
+        expression =  f'{indents}(fp_text {self.type} "{dequote(self.text)}" (at {self.position.X} {self.position.Y}{posA}){unlocked} (layer "{dequote(self.layer)}"{ko}){hide}\n'
         if self.uuid is not None:
             expression += f'{indents}  (uuid "{dequote(self.uuid)}")\n'
         expression += f'{indents}  {self.effects.to_sexpr()}'
@@ -225,7 +225,7 @@ class FpLine():
         else:
             width = ''
 
-        return f'{indents}(fp_line (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) {width}{locked} (layer "{dequote(self.layer)}") {uuid}){endline}'
+        return f'{indents}(fp_line (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}){width}{locked} (layer "{dequote(self.layer)}"){uuid}){endline}'
 
 @dataclass
 class FpRect():
@@ -321,7 +321,7 @@ class FpRect():
         else:
             width = ''
 
-        return f'{indents}(fp_rect (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) {width}{fill}{locked} (layer "{dequote(self.layer)}") {uuid}){endline}'
+        return f'{indents}(fp_rect (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}){width}{fill}{locked} (layer "{dequote(self.layer)}"){uuid}){endline}'
 
 @dataclass
 class FpTextBox():
@@ -557,7 +557,7 @@ class FpCircle():
         else:
             width = ''
 
-        return f'{indents}(fp_circle (center {self.center.X} {self.center.Y}) (end {self.end.X} {self.end.Y}) {width}{fill} (layer "{dequote(self.layer)}") {locked}{uuid}){endline}'
+        return f'{indents}(fp_circle (center {self.center.X} {self.center.Y}) (end {self.end.X} {self.end.Y}){width}{fill}{locked} (layer "{dequote(self.layer)}"){uuid}){endline}'
 
 @dataclass
 class FpArc():
@@ -651,7 +651,7 @@ class FpArc():
         else:
             width = ''
 
-        return f'{indents}(fp_arc (start {self.start.X} {self.start.Y}) (mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}) {width}{locked} (layer "{dequote(self.layer)}") {uuid}){endline}'
+        return f'{indents}(fp_arc (start {self.start.X} {self.start.Y}) (mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}){width}{locked} (layer "{dequote(self.layer)}"){uuid}){endline}'
 
 @dataclass
 class FpPoly():
@@ -752,7 +752,7 @@ class FpPoly():
         expression = f'{indents}(fp_poly (pts\n'
         for point in self.coordinates:
             expression += f'{indents}    (xy {point.X} {point.Y})\n'
-        expression += f'{indents}  ) {width}{fill}{locked} (layer "{dequote(self.layer)}") {uuid}){endline}'
+        expression += f'{indents}  ){width}{fill}{locked} (layer "{dequote(self.layer)}"){uuid}){endline}'
         return expression
 
 @dataclass
@@ -835,7 +835,7 @@ class FpCurve():
             return f'{indents}{endline}'
 
         uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
-        locked = '(locked yes)' if self.locked else ''
+        locked = ' (locked yes)' if self.locked else ''
 
         if self.width is not None:
             width = f' (width {self.width})'
@@ -847,7 +847,7 @@ class FpCurve():
         expression = f'{indents}(fp_curve (pts\n'
         for point in self.coordinates:
             expression += f'{indents}  (xy {point.X} {point.Y})\n'
-        expression += f'{indents}) (layer "{dequote(self.layer)}"){width}{locked}{uuid}){endline}'
+        expression += f'{indents}){width}{locked} (layer "{dequote(self.layer)}"){uuid}){endline}'
         return expression
 
 

@@ -426,14 +426,14 @@ class GrRect():
         """
         indents = ' '*indent
         endline = '\n' if newline else ''
-        locked = f'( locked yes )' if self.locked else ''
+        locked = f' ( locked yes )' if self.locked else ''
         stroke = self.stroke.to_sexpr(indent+2) if self.stroke is not None else ''
         uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
         layer =  f' (layer "{dequote(self.layer)}")' if self.layer is not None else ''
         fill = f' (fill {self.fill})' if self.fill is not None else ''
         width = f' (width {self.width})' if self.width is not None else ''
 
-        return f'{indents}(gr_rect (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) {locked} {stroke} {fill} {layer} {width}{uuid}){endline}'
+        return f'{indents}(gr_rect (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}){locked}{stroke}{fill}{layer}{width}{uuid}){endline}'
 
 @dataclass
 class GrCircle():
@@ -513,7 +513,7 @@ class GrCircle():
         """
         indents = ' '*indent
         endline = '\n' if newline else ''
-        locked = f'( locked yes )' if self.locked else ''
+        locked = f' ( locked yes )' if self.locked else ''
 
         uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
         layer =  f' (layer "{dequote(self.layer)}")' if self.layer is not None else ''
@@ -521,7 +521,7 @@ class GrCircle():
         stroke = self.stroke.to_sexpr(indent+2) if self.stroke is not None else ''
         width = f' (width {self.width})' if self.width is not None else '' 
 
-        return f'{indents}(gr_circle (center {self.center.X} {self.center.Y}) (end {self.end.X} {self.end.Y}) {locked} {stroke} {fill}{layer}  {width}{uuid}){endline}'
+        return f'{indents}(gr_circle (center {self.center.X} {self.center.Y}) (end {self.end.X} {self.end.Y}){locked}{stroke}{fill}{layer}{width}{uuid}){endline}'
 
 @dataclass
 class GrArc():
@@ -602,13 +602,13 @@ class GrArc():
         """
         indents = ' '*indent
         endline = '\n' if newline else ''
-        locked = f'( locked yes )' if self.locked else ''
+        locked = f' ( locked yes )' if self.locked else ''
         stroke = self.stroke.to_sexpr(indent+2) if self.stroke is not None else ''
         uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
         layer =  f' (layer "{dequote(self.layer)}")' if self.layer is not None else ''
         width = f' (width {self.width})' if self.width is not None else ''
 
-        return f'{indents}(gr_arc (start {self.start.X} {self.start.Y}) (mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}) {width} {locked} {stroke} {layer} {uuid}){endline}'
+        return f'{indents}(gr_arc (start {self.start.X} {self.start.Y}) (mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}){width}{locked}{stroke}{layer}{uuid}){endline}'
 
 @dataclass
 class GrPoly():

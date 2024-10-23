@@ -474,6 +474,9 @@ class Pad():
     the thermal relief connection for the pad. This only affects a pad connected to a zone
     with a thermal relief. If not set, the footprint thermal_gap setting is used."""
 
+    zoneLayerConnections: Optional[List[str]] = None
+    """Indicates which cooper layers are connected"""
+
     customPadOptions: Optional[PadOptions] = None
     """The optional ``customPadOptions`` token defines the options when a custom pad is defined"""
 
@@ -540,6 +543,10 @@ class Pad():
             if item[0] == 'zone_connect': object.zoneConnect = item[1]
             if item[0] == 'thermal_width': object.thermalWidth = item[1]
             if item[0] == 'thermal_gap': object.thermalGap = item[1]
+            if item[0] == 'zone_layer_connections':
+                object.zoneLayerConnections = []
+                for layer in item[1:]:
+                    object.zoneLayerConnections.append(layer)
             if item[0] == 'options': object.customPadOptions = PadOptions().from_sexpr(item)
             if item[0] == 'primitives':
                 object.customPadPrimitives = []
@@ -581,14 +588,28 @@ class Pad():
         locked = '(locked yes)' if self.locked else ''
         drill = f' {self.drill.to_sexpr()}' if self.drill is not None else ''
         ppty = f' (property {self.property})' if self.property is not None else ''
+
+        keep_end_layers = ""
+        remove_unused_layers = ""
+        zone_layer_connections = ""
         if self.removeUnusedLayers is not None:
-            rul = ' (remove_unused_layers yes)' if self.removeUnusedLayers else ' (remove_unused_layers no)'
-        else:
-            rul = ''
+            remove_unused_layers = (
+                " (remove_unused_layers yes)"
+                if self.removeUnusedLayers
+                else " (remove_unused_layers no)"
+            )
         if self.keepEndLayers is not None:
-            kel = ' (keep_end_layers yes)' if self.keepEndLayers else ' (keep_end_layers no)'
-        else:
-            kel = ''
+            keep_end_layers = (
+                " (keep_end_layers yes)"
+                if self.keepEndLayers
+                else " (keep_end_layers no)"
+            )
+        if self.zoneLayerConnections is not None:
+            zone_layer_connections += " (zone_layer_connections"
+            for layer in self.zoneLayerConnections:
+                zone_layer_connections += f' "{dequote(layer)}"'
+            zone_layer_connections += ")"
+
         rrr = f' (roundrect_rratio {self.roundrectRatio})' if self.roundrectRatio is not None else ''
 
         net = f' {self.net.to_sexpr()}' if self.net is not None else ''
@@ -645,7 +666,7 @@ class Pad():
             marginFound = True
             tg = f' (thermal_gap {self.thermalGap})'
 
-        expression =  f'{indents}(pad "{dequote(str(self.number))}" {self.type} {self.shape} {position} (size {self.size.X} {self.size.Y}){drill}{ppty}{locked}{layers}{rul}{kel}{rrr}'
+        expression =  f'{indents}(pad "{dequote(str(self.number))}" {self.type} {self.shape} {position} (size {self.size.X} {self.size.Y}){drill}{ppty}{locked}{layers}{remove_unused_layers}{keep_end_layers}{zone_layer_connections}{rrr}'
         if champferFound:
             # Only one whitespace here as all temporary strings have at least one leading whitespace
             expression += f'\n{indents} {cr}{c}'
@@ -842,8 +863,10 @@ class Footprint():
     ``self.from_file()`` is used. Allows the use of ``self.to_file()`` without parameters."""
 
     sheetname: Optional[str] = None
+    """Indicates in which schematic sheet was linked symbol added"""
 
     sheetfile: Optional[str] = None
+    """Indicates in which schematic file was linked symbol added"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Footprint:

@@ -544,10 +544,15 @@ class PlotSettings():
     where the plot files will be saved"""
 
     pdfFrontFpPropertyPopups: bool = False
+    """Generate property popups for front footprints: When enabled, interactive popups will be added
+    to the generated PDF containing part information for each footprint on the front of the board."""
 
     pdfBackFpPropertyPopups: bool = False
+    """Generate property popups for back footprints: When enabled, interactive popups will be added
+    to the generated PDF containing part information for each footprint on the back of the board."""
 
     plotFpText: bool = False
+    """Indicates if footprint text should be printed to output"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> PlotSettings:
@@ -713,6 +718,7 @@ class SetupData():
     """The optional ``plotSettings`` define how the board was last plotted."""
 
     allowSoldermaskBridgesInFootprints: Optional[bool] = None
+    """Inidcates if footprints on board are allowed to have pads bridged with soldermask"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> SetupData:
@@ -739,7 +745,7 @@ class SetupData():
             if item[0] == 'stackup': object.stackup = Stackup().from_sexpr(item)
             if item[0] == 'pcbplotparams': object.plotSettings = PlotSettings().from_sexpr(item)
             if item[0] == 'pad_to_mask_clearance': object.packToMaskClearance = item[1]
-            if item[0] == 'allow_soldermask_bridges_in_footprints': object.allowSoldermaskBridgesInFootprints = True if item[1] == 'true' else False
+            if item[0] == 'allow_soldermask_bridges_in_footprints': object.allowSoldermaskBridgesInFootprints = sexpr.parse_bool(item)
             if item[0] == 'solder_mask_min_width': object.solderMaskMinWidth = item[1]
             if item[0] == 'pad_to_paste_clearance': object.padToPasteClearance = item[1]
             if item[0] == 'pad_to_paste_clearance_ratio': object.padToPasteClearanceRatio = item[1]
@@ -1144,6 +1150,7 @@ class Via():
     """The optional ``uuid`` defines the universally unique identifier"""
 
     zoneLayerConnections: Optional[List[str]] = None
+    """Indicates which cooper layers are connected"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Via:
@@ -1209,28 +1216,33 @@ class Via():
         for layer in self.layers:
             layers += f' "{dequote(layer)}"'
 
-        zlc = ''
-        if self.zoneLayerConnections is not None:
-            zlc += ' (zone_layer_connections'
-            for layer in self.zoneLayerConnections:
-                zlc += f' "{dequote(layer)}"'
-            zlc += ')'
 
+        remove_unused_layers = ""
+        keep_end_layers = ""
+        zone_layer_connections = ''
+        free = ""
         if self.removeUnusedLayers is not None:
-            rum = f' (remove_unused_layers yes)' if self.removeUnusedLayers else ' (remove_unused_layers no)'
-        else:
-            rum = ''
+            remove_unused_layers = (
+                f" (remove_unused_layers yes)"
+                if self.removeUnusedLayers
+                else " (remove_unused_layers no)"
+            )
         if self.keepEndLayers is not None:
-            kel = f' (keep_end_layers yes)' if self.keepEndLayers else '(keep_end_layers no)'
-        else:
-            kel = ''
+            keep_end_layers = (
+                f" (keep_end_layers yes)"
+                if self.keepEndLayers
+                else " (keep_end_layers no)"
+            )
+        if self.zoneLayerConnections is not None:
+            zone_layer_connections += ' (zone_layer_connections'
+            for layer in self.zoneLayerConnections:
+                zone_layer_connections += f' "{dequote(layer)}"'
+            zone_layer_connections += ')'
         if self.free is not None:
-            free = f' (free yes)' if self.free else ' (free no)'
-        else:
-            free = ''
+            free = f" (free yes)" if self.free else " (free no)"
         uuid = f' (uuid "{dequote(self.uuid)}")' if self.uuid is not None else ''
 
-        return f'{indents}(via{type}{locked} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){rum}{kel}{free} {zlc}(net {self.net}){uuid}){endline}'
+        return f'{indents}(via{type}{locked} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){remove_unused_layers}{keep_end_layers}{free} {zone_layer_connections}(net {self.net}){uuid}){endline}'
 
 @dataclass
 class Arc():
