@@ -833,203 +833,253 @@ class Segment():
 
         return f'{indents}(segment{locked} (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (width {self.width}) (layer "{dequote(self.layer)}") (net {self.net}) (uuid "{dequote(self.uuid)}")){endline}'
 
+
 @dataclass
-class Generated():
+class Generated:
+    """Class represents editable trace tunning object (introduced in KiCad 8)"""
 
-    uuid: str = ''
-    """The optional ``uuid`` defines the universally unique identifier"""
+    uuid: str = ""
+    """The ``uuid`` defines the universally unique identifier"""
 
-    type: str = ''
+    type: str = ""
     """The ``type`` token defines the type of the tuned track """
 
-    name: str = ''
+    name: str = ""
     """The ``name`` token defines the name of the tuned track"""
-    
+
     layer: str = "F.Cu"
     """The ``layer`` token defines the canonical layer the tuned track resides on"""
 
-    baseLine:List[str] = field(default_factory=list)
+    baseLine: List[str] = field(default_factory=list)
     """The ``baseLine`` token defines a primary line that tuned tracks are alligned to"""
 
-    baseLineCoupled:List[str] = field(default_factory=list)
+    baseLineCoupled: List[str] = field(default_factory=list)
     """The ``baseLineCoupled`` token defines the coupled base line of the tuned tracks"""
 
     cornerRadius: int = 0
     """The ``cornerRadius`` token defines the radius of the corner"""
 
-    end: str = ''
+    end: str = ""
     """The ``end`` token defines the end of the tuned track"""
 
-    initialSide: str =''
+    initialSide: str = ""
     """The ``initialSide`` token defines the initial side of the tuned track"""
 
     lastDiffPairGap: float = 0
     """The ``lastDiffPairGap`` token holds the value of the last used differential pair gap"""
 
-    lastNetName:str=''
+    lastNetName: str = ""
     """The ``lastNetName`` token holds the last used net name"""
 
-    lastStatus:str=''
+    lastStatus: str = ""
     """The ``lastStatus`` token holds the last status of the tuned track"""
 
-    lastTrackWidth: float =0
+    lastTrackWidth: float = 0
     """The ``lastTrackWidth`` token holds the last width of the tuned track"""
 
-    lastTuning:str=''
+    lastTuning: str = ""
     """The ``lastTuning`` token holds the last tuning of the tuned track"""
 
-    maxAmplitude:float=0
+    maxAmplitude: float = 0
     """The ``maxAmplitude`` token defines the maximal amplitude of the tuned track"""
 
-    minAmplitude:float=0
+    minAmplitude: float = 0
     """The ``minAmplitude`` token defines the minimal amplitude of the tuned track"""
 
-    minSpacing:float=0
+    minSpacing: float = 0
     """The ``minSpacing`` token defines the minimal spacing of the tuned track"""
 
-    origin:str=''
+    origin: str = ""
     """The ``origin`` token defines the origin of the tuned track"""
 
-    overrideCustomRules:str=''
+    overrideCustomRules: str = ""
     """The ``overrideCustomRules`` token enables to bypass the custom rules"""
 
-    rounded:str=''
+    rounded: str = ""
     """The ``rounded`` token defines if the tuned track is rounded"""
 
-    singleSided:str=''
+    singleSided: str = ""
     """The ``singleSided`` token defines if the tuned track is single sided"""
 
-    targetLength:float=0
+    targetLength: float = 0
     """The ``targetLength`` token defines the target length of the tuned track"""
 
-    targetLengthMax:float=0
+    targetLengthMax: float = 0
     """The ``targetLengthMax`` token defines the maximal length of the tuned track"""
 
-    targetLengthMin:float=0
+    targetLengthMin: float = 0
     """The ``targetLengthMin`` token defines the minimal length of the tuned track"""
 
-    targetSkew:float=0
+    targetSkew: float = 0
     """The ``targetSkew`` token defines the target skew of the tuned track"""
 
-    targetSkewMax:float=0
+    targetSkewMax: float = 0
     """The ``targetSkewMax`` token defines the maximal target skew of the tuned track"""
 
-    targetSkewMin:float=0
+    targetSkewMin: float = 0
     """The ``targetSkewMin`` token defines the minimal target skew of the tuned track"""
 
-    tuningMode:str=''
+    tuningMode: str = ""
     """The ``tuningMode`` token defines the mode of tuning the tuned track"""
 
-    members:List[str]=field(default_factory=list)
+    members: List[str] = field(default_factory=list)
     """The ``members`` token defines the members of the tuned track"""
-    
 
     @classmethod
-    def from_sexpr(cls, exp: list) -> Segment:
+    def from_sexpr(cls, exp: list) -> Generated:
+        """Convert the given S-Expresstion into a ``Generated`` object
+
+        Args:
+            - exp (list): Part of parsed S-Expression ``(generated ...)``
+
+        Raises:
+            - Exception: When given parameter's type is not a list
+            - Exception: When the first item of the list is not ``generated``
+
+        Returns:
+            - ``Generated``: Object of the class initialized with the given S-Expression
+        """
         if not isinstance(exp, list):
             raise Exception("Expression does not have the correct type")
 
-        if exp[0] != 'generated':
+        if exp[0] != "generated":
             raise Exception("Expression does not have the correct type")
 
         object = cls()
         for item in exp:
-            if item[0] == 'uuid': object.uuid = item[1]
-            if item[0] == 'type': object.type = item[1]
-            if item[0] == 'name': object.name = item[1]
-            if item[0] == 'layer': object.layer = item[1]
-            if item[0] == 'base_line': 
+            if item[0] == "uuid":
+                object.uuid = item[1]
+            elif item[0] == "type":
+                object.type = item[1]
+            elif item[0] == "name":
+                object.name = item[1]
+            elif item[0] == "layer":
+                object.layer = item[1]
+            elif item[0] == "base_line":
                 pts = item[1]
-                if pts[0] == 'pts':
+                if pts[0] == "pts":
                     for point in pts[1:]:
                         object.baseLine.append(point)
-            if item[0] == 'base_line_coupled':
+            elif item[0] == "base_line_coupled":
                 pts = item[1]
-                if pts[0] == 'pts':
+                if pts[0] == "pts":
                     for point in pts[1:]:
                         object.baseLineCoupled.append(point)
-            if item[0] == 'corner_radius_percent': object.cornerRadius = item[1]
-            if item[0] == 'end': object.end =item[1]
-            if item[0] == 'initial_side': object.initialSide=item[1]
-            if item[0] == 'initial_side': object.initialSide=item[1]
-            if item[0] == 'last_diff_pair_gap': object.lastDiffPairGap=item[1]
-            if item[0] == 'last_netname': object.lastNetName=item[1]
-            if item[0] == 'last_status':object.lastStatus=item[1]
-            if item[0] == 'last_track_width':object.lastTrackWidth=item[1]
-            if item[0] == 'last_tuning': object.lastTuning=item[1]
-            if item[0] == 'max_amplitude':object.maxAmplitude=item[1]
-            if item[0] == 'min_amplitude': object.minAmplitude=item[1]
-            if item[0] == 'min_spacing': object.minSpacing=item[1]
-            if item[0] == 'origin':object.origin=item[1]
-            if item[0] == 'override_custom_rules': object.overrideCustomRules= item[1]
-            if item[0] == 'rounded':object.rounded=item[1]
-            if item[0] == 'single_sided':object.singleSided=item[1]
-            if item[0] == 'target_length':object.targetLength=item[1]
-            if item[0] == 'target_length_max': object.targetLengthMax=item[1]
-            if item[0] == 'target_length_min': object.targetLengthMin=item[1]
-            if item[0] == 'target_skew':object.targetSkew=item[1]
-            if item[0] ==  'target_skew_max':object.targetSkewMax=item[1]
-            if item[0] ==  'target_skew_min':object.targetSkewMin=item[1]
-            if item[0] ==  'tuning_mode':object.tuningMode=item[1]
-            if item[0] == 'members':
-                    for member in item[1:]:
-                        object.members.append(member)
+            elif item[0] == "corner_radius_percent":
+                object.cornerRadius = item[1]
+            elif item[0] == "end":
+                object.end = item[1]
+            elif item[0] == "initial_side":
+                object.initialSide = item[1]
+            elif item[0] == "initial_side":
+                object.initialSide = item[1]
+            elif item[0] == "last_diff_pair_gap":
+                object.lastDiffPairGap = item[1]
+            elif item[0] == "last_netname":
+                object.lastNetName = item[1]
+            elif item[0] == "last_status":
+                object.lastStatus = item[1]
+            elif item[0] == "last_track_width":
+                object.lastTrackWidth = item[1]
+            elif item[0] == "last_tuning":
+                object.lastTuning = item[1]
+            elif item[0] == "max_amplitude":
+                object.maxAmplitude = item[1]
+            elif item[0] == "min_amplitude":
+                object.minAmplitude = item[1]
+            elif item[0] == "min_spacing":
+                object.minSpacing = item[1]
+            elif item[0] == "origin":
+                object.origin = item[1]
+            elif item[0] == "override_custom_rules":
+                object.overrideCustomRules = item[1]
+            elif item[0] == "rounded":
+                object.rounded = item[1]
+            elif item[0] == "single_sided":
+                object.singleSided = item[1]
+            elif item[0] == "target_length":
+                object.targetLength = item[1]
+            elif item[0] == "target_length_max":
+                object.targetLengthMax = item[1]
+            elif item[0] == "target_length_min":
+                object.targetLengthMin = item[1]
+            elif item[0] == "target_skew":
+                object.targetSkew = item[1]
+            elif item[0] == "target_skew_max":
+                object.targetSkewMax = item[1]
+            elif item[0] == "target_skew_min":
+                object.targetSkewMin = item[1]
+            elif item[0] == "tuning_mode":
+                object.tuningMode = item[1]
+            elif item[0] == "members":
+                for member in item[1:]:
+                    object.members.append(member)
         return object
 
-    def generate_xy(self,xy) -> str:
-        expression=''
+    def generate_xy(self, xy) -> str:
+        """Serialize (to S-expr) list of points"""
+        expression = ""
         for p in xy:
-            expression+=f' ({dequote(p[0])} {p[1]} {p[2]})'
+            expression += f" ({dequote(p[0])} {p[1]} {p[2]})"
         return expression
 
     def to_sexpr(self, indent=2, newline=True) -> str:
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-        baseLine = f'(base_line (pts{self.generate_xy(self.baseLine)}))'
-        baseLineCoupled = f'(base_line_coupled (pts{self.generate_xy(self.baseLineCoupled)}))'
-        end = f'(end ({self.end[0]} {self.end[1]} {self.end[2]}))'
-        origin = f'(origin ({self.origin[0]} {self.origin[1]} {self.origin[2]}))'
-        #create members list
-        members=f'{endline}(members'
-        for member in self.members:
-            members+=f'{endline}{indents}{dequote(member)}'
-        members+=f'{endline})'
+        """Generate the S-Expression representing this object
 
-        expression = f'{indents}(generated'
-        expression+= f'{endline}{indents}(uuid "{dequote(self.uuid)}")'
-        expression+= f'{endline}{indents}(type {self.type})'
-        expression+= f'{endline}{indents}(name "{dequote(self.name)}")'
-        expression+= f'{endline}{indents}(layer "{dequote(self.layer)}")'
-        expression+= f'{endline}{indents}{baseLine}'
-        expression+= f'{endline}{indents}{baseLineCoupled}'
-        expression+= f'{endline}{indents}(corner_radius_percent {self.cornerRadius})'
-        expression+= f'{endline}{indents}{end}'
-        expression+= f'{endline}{indents}(initial_side "{dequote(self.initialSide)}")'
-        expression+= f'{endline}{indents}(last_diff_pair_gap {self.lastDiffPairGap})'
-        expression+= f'{endline}{indents}(last_netname "{dequote(self.lastNetName)}")'
-        expression+= f'{endline}{indents}(last_status "{dequote(self.lastStatus)}")'
-        expression+= f'{endline}{indents}(last_track_width {self.lastTrackWidth})'
-        expression+= f'{endline}{indents}(last_tuning "{dequote(self.lastTuning)}")'
-        expression+= f'{endline}{indents}(max_amplitude {self.maxAmplitude})'
-        expression+= f'{endline}{indents}(min_amplitude {self.minAmplitude})'
-        expression+= f'{endline}{indents}(min_spacing {self.minSpacing})'
-        expression+= f'{endline}{indents}{origin}'
-        expression+= f'{endline}{indents}(override_custom_rules {self.overrideCustomRules})'
-        expression+= f'{endline}{indents}(rounded {self.rounded})'
-        expression+= f'{endline}{indents}(single_sided {self.singleSided})'
-        expression+= f'{endline}{indents}(target_length {self.targetLength})'
-        expression+= f'{endline}{indents}(target_length_max {self.targetLengthMax})'
-        expression+= f'{endline}{indents}(target_length_min {self.targetLengthMin})'
-        expression+= f'{endline}{indents}(target_skew {self.targetSkew})'
-        expression+= f'{endline}{indents}(target_skew_max {self.targetSkewMax})'
-        expression+= f'{endline}{indents}(target_skew_min {self.targetSkewMin})'
-        expression+= f'{endline}{indents}(tuning_mode "{dequote(self.tuningMode)}")'
-        expression+=f'{members}'
-        expression+= f'{endline}{indents})'
+        Args:
+            - indent (int): Number of whitespaces used to indent the output. Defaults to 2.
+            - newline (bool): Adds a newline to the end of the output. Defaults to True.
+
+        Returns:
+            - str: S-Expression of this object
+        """
+        indents = " " * indent
+        endline = "\n" if newline else ""
+        baseLine = f"(base_line (pts{self.generate_xy(self.baseLine)}))"
+        baseLineCoupled = f"(base_line_coupled (pts{self.generate_xy(self.baseLineCoupled)}))"
+        end = f"(end ({self.end[0]} {self.end[1]} {self.end[2]}))"
+        origin = f"(origin ({self.origin[0]} {self.origin[1]} {self.origin[2]}))"
+        # create members list
+        members = f"{endline}(members"
+        for member in self.members:
+            members += f"{endline}{indents}{dequote(member)}"
+        members += f"{endline})"
+
+        expression = f"{indents}(generated"
+        expression += f'{endline}{indents}(uuid "{dequote(self.uuid)}")'
+        expression += f"{endline}{indents}(type {self.type})"
+        expression += f'{endline}{indents}(name "{dequote(self.name)}")'
+        expression += f'{endline}{indents}(layer "{dequote(self.layer)}")'
+        expression += f"{endline}{indents}{baseLine}"
+        expression += f"{endline}{indents}{baseLineCoupled}"
+        expression += f"{endline}{indents}(corner_radius_percent {self.cornerRadius})"
+        expression += f"{endline}{indents}{end}"
+        expression += f'{endline}{indents}(initial_side "{dequote(self.initialSide)}")'
+        expression += f"{endline}{indents}(last_diff_pair_gap {self.lastDiffPairGap})"
+        expression += f'{endline}{indents}(last_netname "{dequote(self.lastNetName)}")'
+        expression += f'{endline}{indents}(last_status "{dequote(self.lastStatus)}")'
+        expression += f"{endline}{indents}(last_track_width {self.lastTrackWidth})"
+        expression += f'{endline}{indents}(last_tuning "{dequote(self.lastTuning)}")'
+        expression += f"{endline}{indents}(max_amplitude {self.maxAmplitude})"
+        expression += f"{endline}{indents}(min_amplitude {self.minAmplitude})"
+        expression += f"{endline}{indents}(min_spacing {self.minSpacing})"
+        expression += f"{endline}{indents}{origin}"
+        expression += f"{endline}{indents}(override_custom_rules {self.overrideCustomRules})"
+        expression += f"{endline}{indents}(rounded {self.rounded})"
+        expression += f"{endline}{indents}(single_sided {self.singleSided})"
+        expression += f"{endline}{indents}(target_length {self.targetLength})"
+        expression += f"{endline}{indents}(target_length_max {self.targetLengthMax})"
+        expression += f"{endline}{indents}(target_length_min {self.targetLengthMin})"
+        expression += f"{endline}{indents}(target_skew {self.targetSkew})"
+        expression += f"{endline}{indents}(target_skew_max {self.targetSkewMax})"
+        expression += f"{endline}{indents}(target_skew_min {self.targetSkewMin})"
+        expression += f'{endline}{indents}(tuning_mode "{dequote(self.tuningMode)}")'
+        expression += f"{members}"
+        expression += f"{endline}{indents})"
 
         return expression
-    
-    
+
+
 @dataclass
 class Via():
     """The ``via`` token defines a track via in a KiCad board
