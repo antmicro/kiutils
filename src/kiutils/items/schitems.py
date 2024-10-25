@@ -210,7 +210,7 @@ class BusEntry():
         expression =  f'{indents}(bus_entry (at {self.position.X} {self.position.Y}) (size {self.size.X} {self.size.Y})\n'
         expression += self.stroke.to_sexpr(indent+2)
         if self.uuid is not None:
-            expression += f'{indents}  (uuid {self.uuid})\n'
+            expression += f'{indents}  (uuid "{self.uuid}")\n'
         expression += f'{indents}){endline}'
         return expression
 
@@ -427,7 +427,7 @@ class PolyLine():
         if self.fill is not None:
             expression += self.fill.to_sexpr(indent+2)
         if self.uuid is not None:
-            expression += f'{indents}  (uuid "{self.uuid}")\n'
+            expression += f'{indents}  (uuid {self.uuid})\n' # uuid is intentionally not quoted to match KiCad 8 formatting (checked on v8.0.5)
         expression += f'{indents}){endline}'
         return expression
 
