@@ -234,7 +234,7 @@ class DrillDefinition():
     oval: bool = False
     """The ``oval`` token defines if the drill is oval instead of round"""
 
-    diameter: float = 0.0
+    diameter: Optional[float] = None
     """The ``diameter`` attribute defines the drill diameter"""
 
     width: Optional[float] = None
@@ -264,19 +264,20 @@ class DrillDefinition():
             raise Exception("Expression does not have the correct type")
 
         object = cls()
-        # Depending on the ``oval`` token, the fields may be shifted ..
-        if exp[1] == 'oval':
-            object.oval = True
-            if type(exp[2]) != float and type(exp[2]) != int:
-                return None
-            object.diameter = exp[2]
-            object.width = exp[3]
-        else:
-            if type(exp[1]) != float and type(exp[1]) != int:
-                return None
-            object.diameter = exp[1]
-            if len(exp) > 2:
-                object.width = exp[2]
+        if not isinstance(exp[1], list):
+            # Depending on the ``oval`` token, the fields may be shifted ..
+            if exp[1] == 'oval':
+                object.oval = True
+                if type(exp[2]) != float and type(exp[2]) != int:
+                    return None
+                object.diameter = exp[2]
+                object.width = exp[3]
+            else:
+                if type(exp[1]) != float and type(exp[1]) != int:
+                    return None
+                object.diameter = exp[1]
+                if len(exp) > 2:
+                    object.width = exp[2]
 
         # The ``offset`` token may not be given
         for item in exp:
@@ -298,10 +299,11 @@ class DrillDefinition():
         endline = '\n' if newline else ''
 
         oval = f' oval' if self.oval else ''
+        diameter = f' {self.diameter}' if self.diameter is not None else ''
         width = f' {self.width}' if self.oval and self.width is not None else ''
         offset = f' (offset {self.offset.X} {self.offset.Y})' if self.offset is not None else ''
 
-        return f'{indents}(drill{oval} {self.diameter}{width}{offset}){endline}'
+        return f'{indents}(drill{oval}{diameter}{width}{offset}){endline}'
 
 @dataclass
 class PadOptions():
