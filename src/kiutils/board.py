@@ -92,6 +92,9 @@ class Board():
     groups: List[Group] = field(default_factory=list)
     """The ``groups`` token defines a list of groups used in the layout"""
 
+    generated: List[Generated] = field(default_factory=list)
+    """The ``generated`` token defines a list of generated (editable tunning) objects used in the layout"""
+
     filePath: Optional[str] = None
     """The ``filePath`` token defines the path-like string to the board file. Automatically set when
     ``self.from_file()`` is used. Allows the use of ``self.to_file()`` without parameters."""
@@ -144,7 +147,7 @@ class Board():
             if item[0] == 'target': object.targets.append(Target().from_sexpr(item))
             if item[0] == 'segment': object.traceItems.append(Segment().from_sexpr(item))
             if item[0] == 'arc': object.traceItems.append(Arc().from_sexpr(item))
-            if item[0] == 'generated': object.traceItems.append(Generated().from_sexpr(item))
+            if item[0] == 'generated': object.generated.append(Generated().from_sexpr(item))
             if item[0] == 'via': object.traceItems.append(Via().from_sexpr(item))
             if item[0] == 'zone': object.zones.append(Zone().from_sexpr(item))
             if item[0] == 'group': object.groups.append(Group().from_sexpr(item))
@@ -324,6 +327,9 @@ class Board():
         # Groups
         for group in self.groups:
             expression += group.to_sexpr(indent+2)
+
+        for gen in self.generated:
+            expression += gen.to_sexpr(indent+2)
 
         expression += f'{indents}){endline}'
         return expression

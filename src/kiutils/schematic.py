@@ -263,6 +263,11 @@ class Schematic():
         else:
             expression += f'{indents}  (lib_symbols)\n'
 
+        if self.busAliases:
+            expression += '\n'
+            for item in self.busAliases:
+                expression += item.to_sexpr(indent+2)
+
         if self.junctions:
             expression += '\n'
             for item in self.junctions:
@@ -277,12 +282,6 @@ class Schematic():
             expression += '\n'
             for item in self.busEntries:
                 expression += item.to_sexpr(indent+2)
-
-        if self.busAliases:
-            expression += '\n'
-            for item in self.busAliases:
-                expression += item.to_sexpr(indent+2)
-
         if self.graphicalItems:
             expression += '\n'
             for item in self.graphicalItems:

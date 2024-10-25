@@ -427,7 +427,11 @@ class PolyLine():
         if self.fill is not None:
             expression += self.fill.to_sexpr(indent+2)
         if self.uuid is not None:
-            expression += f'{indents}  (uuid {self.uuid})\n' # uuid is intentionally not quoted to match KiCad 8 formatting (checked on v8.0.5)
+            if self.fill is None: #This is to match KiCad8 behavior (as of 8.0.5)
+                expression += f'{indents}  (uuid "{self.uuid}")\n'
+            else:
+                expression += f'{indents}  (uuid {self.uuid})\n'
+
         expression += f'{indents}){endline}'
         return expression
 
@@ -1696,7 +1700,10 @@ class Rectangle():
         expression += self.stroke.to_sexpr(indent+2)
         expression += self.fill.to_sexpr(indent+2)
         if self.uuid is not None:
-            expression += f'{indents}  (uuid "{self.uuid}")\n'
+            if self.fill is None: #This is to match KiCad8 behavior (as of 8.0.5)
+                expression += f'{indents}  (uuid "{self.uuid}")\n'
+            else:
+                expression += f'{indents}  (uuid {self.uuid})\n'
         expression += f'{indents}){endline}'
         return expression
 

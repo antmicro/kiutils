@@ -1094,14 +1094,7 @@ class Footprint():
             expression += f'{indents}  (private_layers'
             for item in self.privateLayers:
                 expression += f' "{dequote(item)}"'
-            expression += f')\n'
-            
-        if self.netTiePadGroups:
-            expression += f'{indents}  (net_tie_pad_groups'
-            for item in self.netTiePadGroups:
-                expression += f' "{dequote(item)}"'
-            expression += f')\n'
-            
+            expression += f')\n'   
         for item in self.properties:
             expression += item.to_sexpr(indent=indent+2)
         if self.path is not None:
@@ -1116,7 +1109,12 @@ class Footprint():
             # Note: If the attribute object has only standard values in it, it will return an
             #       empty string. Therefore, it should create its own newline and indentations only
             #       when needed.
-            expression += self.attributes.to_sexpr(indent=indent+2, newline=True)
+            expression += self.attributes.to_sexpr(indent=indent+2, newline=True)  
+        if self.netTiePadGroups:
+            expression += f'{indents}  (net_tie_pad_groups'
+            for item in self.netTiePadGroups:
+                expression += f' "{dequote(item)}"'
+            expression += f')\n'
         for item in self.graphicItems:
             expression += item.to_sexpr(indent=indent+2)
         for item in self.pads:

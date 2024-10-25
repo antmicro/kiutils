@@ -1147,12 +1147,14 @@ class Image():
         layer = f' (layer "{dequote(self.layer)}")' if self.layer is not None else ''
 
         expression =  f'{indents}(image (at {self.position.X} {self.position.Y}){layer}{scale}\n'
-        if self.uuid is not None:
-            expression += f'{indents}  (uuid "{self.uuid}")\n'
+        if self.uuid is not None and self.layer is None: #SCH image; this is to match KiCad ordering (As of v8.0.5)
+                expression += f'{indents}  (uuid "{self.uuid}")\n'
         expression += f'{indents}  (data\n'
         for b64part in self.data:
             expression += f'{indents}    "{b64part}"\n'
         expression += f'{indents}  )\n'
+        if self.uuid is not None and self.layer is not None: #PCB image; this is to match KiCad ordering (As of v8.0.5)
+                expression += f'{indents}  (uuid "{self.uuid}")\n'
         expression += f'{indents}){endline}'
         return expression
 
