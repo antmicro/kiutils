@@ -43,7 +43,7 @@ class Position():
     of a degree. All other angles are stored in degrees."""
 
     # TODO: What is this? Documentation does not tell ..
-    unlocked: bool = False
+    unlocked: Optional[bool] = None
     """The ``unlocked`` token's description has to be defined yet .."""
 
     @classmethod
@@ -66,20 +66,26 @@ class Position():
         object = cls()
         object.X = exp[1]
         object.Y = exp[2]
-        if len(exp) >= 4:
+        for ex in exp[3:]:
             # More than four components means X, Y, and either angle or unlocked are present
-            if exp[3] != 'unlocked':
-                object.angle = exp[3]
-
-        for item in exp:
-            if item == 'unlocked': object.unlocked = True
+            if not isinstance(ex, list):
+                object.angle = ex
+            elif ex[0] == "unlocked":
+                object.unlocked = sexpr.parse_bool(ex)
 
         return object
 
     def to_sexpr(self) -> str:
-        """This object does not have a direct S-Expression representation."""
-        raise NotImplementedError("This object does not have a direct S-Expression representation")
+        """Generate the S-Expression representing this object
 
+        Args:
+            - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
+            - newline (bool): Adds a newline to the end of the output. Defaults to False.
+
+        Returns:
+            - str: S-Expression of this object  
+        """
+        return sexpr.maybe_to_sexpr( [self.X, self.Y, self.angle, (self.unlocked, "unlocked")], "at" )
 
 @dataclass
 class Coordinate():
@@ -130,10 +136,7 @@ class Coordinate():
         Returns:
             - str: S-Expression of this object
         """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-        return f'{indents}(xyz {self.X} {self.Y} {self.Z}){endline}'
-
+        return sexpr.maybe_to_sexpr([self.X, self.Y, self.Z], "xyz", indent, newline)
 
 @dataclass
 class ColorRGBA():

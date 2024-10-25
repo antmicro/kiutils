@@ -3,7 +3,7 @@
 # Originally taken from: https://gitlab.com/kicad/libraries/kicad-library-utils/-/blob/master/common/sexpr.py
 
 import re
-from typing import List
+from typing import List, Optional, Any
 
 dbg = False
 
@@ -50,3 +50,40 @@ def parse_bool(arr: List[str]) -> bool:
         return True
     else:
         return False
+
+
+def val_to_str(val: Any) -> str:
+    if isinstance(val, bool):
+        if val:
+            return "yes"
+        else:
+            return "no"
+
+    if isinstance(val, list):
+        ret = ""
+        for elem in val:
+            if isinstance(elem, tuple):
+                ret += maybe_to_sexpr(elem[0], elem[1])
+            else:
+                ret += maybe_to_sexpr(elem)
+        return ret
+    if isinstance(val, float):
+        return f"{round(val,6)}"
+    if isinstance(val, str) or isinstance(val, int):
+        return f"{val}"
+
+    return val.to_sexpr()  # This will throw exceptions if type does not have to_sexpr()
+
+
+def maybe_to_sexpr(val: Any, name: str = "", indent=1, newline=False) -> str:
+    if val is None:
+        return ""
+
+    v = val_to_str(val)
+
+    indents = " " * indent
+    if name == "":
+        return f"{indents}{v}"
+    else:
+        endline = "\n" if newline else ""
+        return f"{indents}({name} {v}){endline}"
