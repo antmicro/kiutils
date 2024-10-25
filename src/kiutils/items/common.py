@@ -823,7 +823,7 @@ class Property():
     effects: Optional[Effects] = None
     """The optional ``effects`` section defines how the text is displayed"""
 
-    showName: bool = False
+    showName: Optional[bool] = None
     """The ``show_name`` token defines if the property name is visibly shown. Used for netclass
     labels.
 
@@ -856,7 +856,7 @@ class Property():
             if item[0] == 'id': object.id = item[1]
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'effects': object.effects = Effects().from_sexpr(item)
-            if item[0] == 'show_name': object.showName = True
+            if item[0] == 'show_name': object.showName = sexpr.parse_bool(item)
         return object
 
     def to_sexpr(self, indent: int = 4, newline: bool = True) -> str:
@@ -874,7 +874,9 @@ class Property():
 
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         id = f' (id {self.id})' if self.id is not None else ''
-        sn = ' (show_name)' if self.showName else ''
+        sn = sexpr.maybe_to_sexpr(self.showName,"show_name") 
+        if self.effects is not None and self.effects.hide: 
+            sn = " (show_name)" if self.showName else ""
 
         expression =  f'{indents}(property "{dequote(self.key)}" "{dequote(self.value)}"{id} (at {self.position.X} {self.position.Y}{posA}){sn}'
         if self.effects is not None:
