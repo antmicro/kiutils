@@ -472,7 +472,7 @@ class Pad():
     - 3: Only through hold pad is connected to zone using thermal relief
     """
 
-    thermalWidth: Optional[float] = None
+    thermalBridgeWidth: Optional[float] = None
     """The optional ``thermalWidth`` token attribute defines the thermal relief spoke width used for
     zone connection for the pad. This only affects a pad connected to a zone with a thermal
     relief. If not set, the footprint thermal_width setting is used."""
@@ -552,7 +552,7 @@ class Pad():
             if item[0] == 'solder_paste_margin_ratio': object.solderPasteMarginRatio = item[1]
             if item[0] == 'clearance': object.clearance = item[1]
             if item[0] == 'zone_connect': object.zoneConnect = item[1]
-            if item[0] == 'thermal_width': object.thermalWidth = item[1]
+            if item[0] == 'thermal_bridge_width': object.thermalBridgeWidth = item[1]
             if item[0] == 'thermal_gap': object.thermalGap = item[1]
             if item[0] == 'thermal_bridge_angle': object.thermalBridgeAngle = item[1]
             if item[0] == 'zone_layer_connections':
@@ -670,26 +670,18 @@ class Pad():
             marginFound = True
             zc = f' (zone_connect {self.zoneConnect})'
 
-        if self.thermalWidth is not None:
-            marginFound = True
-            tw = f' (thermal_width {self.thermalWidth})'
-
-        if self.thermalGap is not None:
-            marginFound = True
-            tg = f' (thermal_gap {self.thermalGap})'
-
         expression =  f'{indents}(pad "{dequote(str(self.number))}" {self.type} {self.shape} {position} (size {self.size.X} {self.size.Y}){drill}{ppty}{locked}{layers}{remove_unused_layers}{keep_end_layers}{zone_layer_connections}{rrr}'
         if champferFound:
             # Only one whitespace here as all temporary strings have at least one leading whitespace
             expression += f'\n{indents} {cr}{c}'
 
-        if self.dieLength is not None:
-            expression += f'\n{indents}  (die_length {self.dieLength})'
-
         if marginFound or schematicSymbolAssociated:
             # Only one whitespace here as all temporary strings have at least one leading whitespace
-            expression += f'\n{indents} {net}{pf}{pt}{smm}{spm}{spmr}{cl}{zc}{tw}{tg}'
-        expression+=f"\n{sexpr.maybe_to_sexpr(self.thermalBridgeAngle, 'thermal_bridge_angle', indent)}"
+            expression += f"\n{indents} {net}{pf}{pt}{smm}{spm}{spmr}{cl}{zc}"
+        expression += sexpr.maybe_to_sexpr(self.dieLength, "die_length")
+        expression += sexpr.maybe_to_sexpr(self.thermalBridgeWidth, "thermal_bridge_width")
+        expression += sexpr.maybe_to_sexpr(self.thermalBridgeAngle, "thermal_bridge_angle")
+        expression += sexpr.maybe_to_sexpr(self.thermalGap, "thermal_gap")
         if self.customPadOptions is not None:
             expression += f'\n{indents}  {self.customPadOptions.to_sexpr()}'
 

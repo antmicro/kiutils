@@ -68,7 +68,7 @@ def val_to_str(val: Any) -> str:
                 ret += maybe_to_sexpr(elem)
         return ret
     if isinstance(val, float):
-        return f"{round(val,6)}"
+        return f"{round(val,6):.6f}".rstrip("0.")
     if isinstance(val, int):
         return f"{val}"
     if isinstance(val, str):

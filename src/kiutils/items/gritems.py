@@ -706,7 +706,7 @@ class GrPoly():
             expression =  f'{indents}(gr_poly{locked} (pts\n'
 
         for point in self.coordinates:
-            expression += f'{indents}    (xy {point.X} {point.Y})\n'
+            expression += sexpr.maybe_to_sexpr([point.X, point.Y], "xy", indent+4, True)
         expression += f'{indents}  ){endline}{endline}'
         if self.stroke is None:
             expression += f'{indents} {locked} {layer} (width {self.width}){fill}{uuid}){endline}'
