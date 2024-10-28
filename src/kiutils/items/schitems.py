@@ -983,6 +983,60 @@ class SymbolProjectInstance(ProjectInstance):
         return expression
 
 @dataclass
+class SchematicSymbolPin():
+    """ ``SchematicSymbolPin`` stores single pin instance (part of ``SchematicSymbol`` instance) """
+
+    number: str =""
+    """ Pin number (eg. "1", "A1", ..) """
+
+    uuid: str = ""
+    """The optional `uuid` defines the universally unique identifier"""
+
+    alternate: Optional[str] = None
+    """ Defines selected alternative pin assignment """
+
+    @classmethod
+    def from_sexpr(cls, exp: list) -> SchematicSymbolPin:
+        """Convert the given S-Expresstion into a SchematicSymbolPin object
+
+        Args:
+            - exp (list): Part of parsed S-Expression ``(symbol ...)``
+
+        Raises:
+            - Exception: When given parameter's type is not a list
+            - Exception: When the first item of the list is not symbol
+
+        Returns:
+            - SchematicSymbolPin: Object of the class initialized with the given S-Expression
+        """
+        if not isinstance(exp, list):
+            raise Exception("Expression does not have the correct type")
+
+        if exp[0] != 'pin':
+            raise Exception("Expression does not have the correct type")
+
+        object = cls()
+        object.number=exp[1]
+        for item in exp[2:]:
+            if item[0] == 'uuid': object.uuid = item[1]
+            if item[0] == 'alternate': object.alternate = item[1]
+        
+        return object
+
+    def to_sexpr(self, indent=2, newline=True) -> str:
+        """Generate the S-Expression representing this object
+
+        Args:
+            - indent (int): Number of whitespaces used to indent the output. Defaults to 2.
+            - newline (bool): Adds a newline to the end of the output. Defaults to True.
+
+        Returns:
+            - str: S-Expression of this object
+        """
+
+        return sexpr.maybe_to_sexpr([self.number, (self.uuid, "uuid"), (self.alternate, "alternate")], "pin", indent, newline)
+
+@dataclass
 class SchematicSymbol():
     """The ``symbol`` token in the symbol section of the schematic defines an instance of a symbol
     from the library symbol section of the schematic
@@ -1067,9 +1121,9 @@ class SchematicSymbol():
     properties: List[Property] = field(default_factory=list)
     """The ``properties`` section defines a list of symbol properties of the schematic symbol"""
 
-    pins: Dict[str, str] = field(default_factory=dict)
-    """The ``pins`` token defines a dictionary with pin numbers in form of strings as keys and
-    uuid's as values"""
+    pins: List[SymbolPin] = field(default_factory=list)
+    """The ``pins`` section is a list of pins that are used by the symbol. This section can be empty if
+    the symbol does not have any pins."""
 
     mirror: Optional[str] = None
     """The ``mirror`` token defines if the symbol is mirrored in the schematic. Accepted values:
@@ -1118,7 +1172,7 @@ class SchematicSymbol():
             if item[0] == 'dnp': object.dnp = sexpr.parse_bool(item)
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'property': object.properties.append(Property().from_sexpr(item))
-            if item[0] == 'pin': object.pins.update({item[1]: item[2][1]})
+            if item[0] == 'pin': object.pins.append(SchematicSymbolPin().from_sexpr(item))
             if item[0] == 'mirror': object.mirror = item[1]
             if item[0] == 'instances':
                 for instance in item[1:]:
@@ -1163,8 +1217,8 @@ class SchematicSymbol():
             expression += f'{indents}  (uuid "{self.uuid}")\n'
         for property in self.properties:
             expression += property.to_sexpr(indent+2)
-        for number, uuid in self.pins.items():
-            expression += f'{indents}  (pin "{dequote(number)}" (uuid "{uuid}"))\n'
+        for pin in self.pins:
+            expression+=pin.to_sexpr(indent, True)
         if len(self.instances) != 0:
             expression += f'{indents}  (instances\n'
             for instance in self.instances:

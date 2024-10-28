@@ -69,8 +69,11 @@ def val_to_str(val: Any) -> str:
         return ret
     if isinstance(val, float):
         return f"{round(val,6)}"
-    if isinstance(val, str) or isinstance(val, int):
+    if isinstance(val, int):
         return f"{val}"
+    if isinstance(val, str):
+        val = val.replace('"', '\\"')
+        return f'"{val}"'
 
     return val.to_sexpr()  # This will throw exceptions if type does not have to_sexpr()
 
