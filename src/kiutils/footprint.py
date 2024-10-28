@@ -60,6 +60,9 @@ class Attributes():
     "missing courtyard" DRC violation.
     Available since KiCad 7"""
 
+    allowSoldermaskBridges: bool = False
+    """Indicates if footprint is allowed to have pads bridged with soldermask"""
+
     dnp: bool = False
     """The optional ``dnp`` token indicates that the footprint is not to be populated"""
 
@@ -95,6 +98,7 @@ class Attributes():
             if item == 'exclude_from_pos_files': object.excludeFromPosFiles = True
             if item == 'exclude_from_bom': object.excludeFromBom = True
             if item == 'allow_missing_courtyard': object.allowMissingCourtyard = True
+            if item == 'allow_soldermask_bridges': object.allowSoldermaskBridges = True
             if item == 'dnp': object.dnp = True
         return object
 
@@ -121,6 +125,7 @@ class Attributes():
             and self.excludeFromBom == False
             and self.excludeFromPosFiles == False
             and self.allowMissingCourtyard == False
+            and self.allowSoldermaskBridges == False
             and self.dnp == False):
             return ''
 
@@ -133,6 +138,7 @@ class Attributes():
         if self.excludeFromPosFiles: expression += ' exclude_from_pos_files'
         if self.excludeFromBom: expression += ' exclude_from_bom'
         if self.allowMissingCourtyard: expression += ' allow_missing_courtyard'
+        if self.allowSoldermaskBridges: expression += ' allow_soldermask_bridges'
         if self.dnp: expression += ' dnp'
         expression += f'){endline}'
         return expression
@@ -476,6 +482,9 @@ class Pad():
     the thermal relief connection for the pad. This only affects a pad connected to a zone
     with a thermal relief. If not set, the footprint thermal_gap setting is used."""
 
+    thermalBridgeAngle: Optional[float] = None
+    """The optional ``thermalBridgeAngle`` affects angle of thermal relief spoke pad escape"""
+
     zoneLayerConnections: Optional[List[str]] = None
     """Indicates which cooper layers are connected"""
 
@@ -545,6 +554,7 @@ class Pad():
             if item[0] == 'zone_connect': object.zoneConnect = item[1]
             if item[0] == 'thermal_width': object.thermalWidth = item[1]
             if item[0] == 'thermal_gap': object.thermalGap = item[1]
+            if item[0] == 'thermal_bridge_angle': object.thermalBridgeAngle = item[1]
             if item[0] == 'zone_layer_connections':
                 object.zoneLayerConnections = []
                 for layer in item[1:]:
@@ -679,7 +689,7 @@ class Pad():
         if marginFound or schematicSymbolAssociated:
             # Only one whitespace here as all temporary strings have at least one leading whitespace
             expression += f'\n{indents} {net}{pf}{pt}{smm}{spm}{spmr}{cl}{zc}{tw}{tg}'
-
+        expression+=f"\n{sexpr.maybe_to_sexpr(self.thermalBridgeAngle, 'thermal_bridge_angle', indent)}"
         if self.customPadOptions is not None:
             expression += f'\n{indents}  {self.customPadOptions.to_sexpr()}'
 
