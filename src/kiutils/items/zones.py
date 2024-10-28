@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Optional, List
+from enum import Enum
 
 from kiutils.items.common import Position
 from kiutils.utils.strings import dequote
@@ -478,6 +479,50 @@ class Hatch():
     pitch: float = 0.0
     """The ``pitch`` token defines the pitch of the hatch"""
 
+class ZoneAttrTeardropType(Enum):
+    """ Teardrop zone type """
+    
+    track_end = 0
+    """ track-track teardrop """
+
+    padvia = 1
+    """ pad/via teradrop """
+
+    @classmethod
+    def from_sexpr(cls, exp: list) -> ZoneAttrTeardropType:
+        """Convert the given S-Expresstion into a ZoneAttrTeardropType object
+
+        Args:
+            - exp (list): Part of parsed S-Expression ``(ZoneAttrTeardropType ...)``
+
+        Raises:
+            - Exception: When given parameter's type is not a list
+            - Exception: When the first item of the list is not type
+
+        Returns:
+            - ZoneAttrTeardropType: Object of the class initialized with the given S-Expression
+        """
+        if not isinstance(exp, list):
+            raise Exception("Expression does not have the correct type")
+
+        if exp[0] != 'type':
+            raise Exception("Expression does not have the correct type")
+
+        return ZoneAttrTeardropType[exp[1]]
+
+    def to_sexpr(self, indent: int = 2) -> str:
+        """Generate the S-Expression representing this object.
+
+        Args:
+            - indent (int): Number of whitespaces used to indent the output. Defaults to 2.
+            - newline (bool): Adds a newline to the end of the output. Defaults to True.
+
+        Returns:
+            - str: S-Expression of this object.
+        """
+        return f"{indent*' '}(type {self.name})\n"
+
+
 @dataclass
 class Zone():
     """The ``zone`` token defines a zone on the board or footprint. Zones serve two purposes
@@ -515,6 +560,9 @@ class Zone():
 
     priority: Optional[int] = None
     """The optional ``priority`` attribute defines the zone priority if it is not zero"""
+
+    attrTeardrop: Optional[ZoneAttrTeardropType] = None
+    """The ``attrTeardrop`` attribute indicates if this is a teardrop zone (and which type) """
 
     connectPads: Optional[str] = None  # This refers to CONNECTION_TYPE in the docu
     """The ``connectPads`` token attributes define the pad connection type and clearance. Valid
@@ -584,6 +632,7 @@ class Zone():
             if item[0] == 'hatch':
                 object.hatch = Hatch(style=item[1], pitch=item[2])
             if item[0] == 'priority': object.priority = item[1]
+            if item[0] == 'attr' and item[1][0] == "teardrop":  object.attrTeardrop = ZoneAttrTeardropType.from_sexpr(item[1][1])
             if item[0] == 'connect_pads':
                 if len(item) == 2:
                     object.clearance = item[1][1]
@@ -624,7 +673,7 @@ class Zone():
         layers, layer_token = '', ''
         for layer in self.layers:
             layers += f' "{dequote(layer)}"'
-            
+
         if len(self.layers) == 0:
             raise Exception("Zone: No layers set for this zone")
         elif len(self.layers) == 1 and self.layers[0] != "F&B.Cu" and self.layers[0] != "*.Cu":
@@ -634,7 +683,8 @@ class Zone():
 
         expression =  f'{indents}(zone{locked} (net {self.net}) (net_name "{dequote(self.netName)}"){layer_token}{uuid}{name} (hatch {self.hatch.style} {self.hatch.pitch})\n'
         if self.priority is not None:
-            expression += f'{indents}  (priority {self.priority})\n'
+            expression += f"{indents}  (priority {self.priority})\n"
+        expression += sexpr.maybe_to_sexpr(((self.attrTeardrop, "teardrop"), "attr"), indent=indent + 2, newline=True)
         expression += f'{indents}  (connect_pads{contype} (clearance {self.clearance}))\n'
         expression += f'{indents}  (min_thickness {self.minThickness}){fat}\n'
         if self.keepoutSettings is not None:

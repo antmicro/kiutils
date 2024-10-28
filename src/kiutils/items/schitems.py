@@ -1218,7 +1218,7 @@ class SchematicSymbol():
         for property in self.properties:
             expression += property.to_sexpr(indent+2)
         for pin in self.pins:
-            expression+=pin.to_sexpr(indent, True)
+            expression += pin.to_sexpr(indent, True)
         if len(self.instances) != 0:
             expression += f'{indents}  (instances\n'
             for instance in self.instances:

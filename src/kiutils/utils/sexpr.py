@@ -62,13 +62,10 @@ def val_to_str(val: Any) -> str:
     if isinstance(val, list):
         ret = ""
         for elem in val:
-            if isinstance(elem, tuple):
-                ret += maybe_to_sexpr(elem[0], elem[1])
-            else:
-                ret += maybe_to_sexpr(elem)
+            ret += maybe_to_sexpr(elem)
         return ret
     if isinstance(val, float):
-        return f"{round(val,6):.6f}".rstrip("0.")
+        return f"{round(val,6):.6f}".rstrip("0").rstrip(".")
     if isinstance(val, int):
         return f"{val}"
     if isinstance(val, str):
@@ -82,7 +79,12 @@ def maybe_to_sexpr(val: Any, name: str = "", indent=1, newline=False) -> str:
     if val is None:
         return ""
 
-    v = val_to_str(val)
+    if isinstance(val, tuple):
+        v = maybe_to_sexpr(val[0], val[1])
+        if v == "":
+            return ""
+    else: 
+        v = val_to_str(val)
 
     indents = " " * indent
     if name == "":

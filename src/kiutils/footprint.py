@@ -26,6 +26,7 @@ from kiutils.items.zones import Zone
 from kiutils.items.common import Image, Position, Coordinate, Net, Group, Font
 from kiutils.items.fpitems import *
 from kiutils.items.gritems import *
+from kiutils.items.brditems import Teardrops
 from kiutils.items.dimensions import *
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote, remove_prefix
@@ -485,6 +486,9 @@ class Pad():
     thermalBridgeAngle: Optional[float] = None
     """The optional ``thermalBridgeAngle`` affects angle of thermal relief spoke pad escape"""
 
+    teardrops: Optional[Teardrops] = None
+    """Defines teardrop connections of pad"""
+
     zoneLayerConnections: Optional[List[str]] = None
     """Indicates which cooper layers are connected"""
 
@@ -543,6 +547,7 @@ class Pad():
                 for chamfer in item[1:]:
                     object.chamfer.append(chamfer)
             if item[0] == 'net': object.net = Net().from_sexpr(item)
+            if item[0] == 'teardrops': object.teardrops = Teardrops().from_sexpr(item)
             if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'pinfunction': object.pinFunction = item[1]
             if item[0] == 'pintype': object.pinType = item[1]
@@ -682,6 +687,7 @@ class Pad():
         expression += sexpr.maybe_to_sexpr(self.thermalBridgeWidth, "thermal_bridge_width")
         expression += sexpr.maybe_to_sexpr(self.thermalBridgeAngle, "thermal_bridge_angle")
         expression += sexpr.maybe_to_sexpr(self.thermalGap, "thermal_gap")
+        expression += sexpr.maybe_to_sexpr(self.teardrops)
         if self.customPadOptions is not None:
             expression += f'\n{indents}  {self.customPadOptions.to_sexpr()}'
 

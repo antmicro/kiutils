@@ -1106,6 +1106,102 @@ class Generated:
 
 
 @dataclass
+class Teardrops:
+    """The ``tearadrops`` object defines via/pad teardrop connection"""
+
+    bestLengthRatio: Optional[float] = None
+    """Defines length of teardrop in relation to pad/via width"""
+
+    maxLength: Optional[float] = None
+    """Defines maximum length of teardrop"""
+
+    bestWidthRatio: Optional[float] = None
+    """Defines width (on wider side) of teardrop in relation to pad/via width"""
+
+    maxWidth: Optional[float] = None
+    """Defines maximum width of teardrop"""
+
+    curvePoints: Optional[int] = None
+    """Defines aproximation quality of curved teardrop"""
+
+    filterRatio: Optional[float] = None
+    """Skip teardrop if ratio of pad/via width to track width is larger than ``filterRatio``"""
+
+    enabled: Optional[bool] = None
+    """Controls if teardrop should be generated for pad/via"""
+
+    allowTwoSegments: Optional[bool] = None
+    """Can teardrop span over two track segments"""
+
+    preferZoneConnections: Optional[bool] = None
+    """Controls zone connection should use teardrops"""
+
+    @classmethod
+    def from_sexpr(cls, exp: list) -> Teardrops:
+        """Convert the given S-Expresstion into a Teardrops object
+
+        Args:
+            - exp (list): Part of parsed S-Expression ``(teardrops ...)``
+
+        Raises:
+            - Exception: When given parameter's type is not a list
+            - Exception: When the first item of the list is not teardrops
+
+        Returns:
+            - Via: Object of the class initialized with the given S-Expression
+        """
+        if not isinstance(exp, list):
+            raise Exception("Expression does not have the correct type")
+
+        if exp[0] != "teardrops":
+            raise Exception("Expression does not have the correct type")
+
+        object = cls()
+        for item in exp:
+            if item[0] == "best_length_ratio":
+                object.bestLengthRatio = item[1]
+            if item[0] == "max_length":
+                object.maxLength = item[1]
+            if item[0] == "best_width_ratio":
+                object.bestWidthRatio = item[1]
+            if item[0] == "max_width":
+                object.maxWidth = item[1]
+            if item[0] == "curve_points":
+                object.curvePoints = item[1]
+            if item[0] == "filter_ratio":
+                object.filterRatio = item[1]
+            if item[0] == "enabled":
+                object.enabled = sexpr.parse_bool(item)
+            if item[0] == "allow_two_segments":
+                object.allowTwoSegments = sexpr.parse_bool(item)
+            if item[0] == "prefer_zone_connections":
+                object.preferZoneConnections = sexpr.parse_bool(item)
+
+        return object
+
+    def to_sexpr(self) -> str:
+        """Generate the S-Expression representing this object
+
+        Returns:
+            - str: S-Expression of this object
+        """
+        return sexpr.maybe_to_sexpr(
+            [
+                (self.bestLengthRatio, "best_length_ratio"),
+                (self.maxLength, "max_length"),
+                (self.bestWidthRatio, "best_width_ratio"),
+                (self.maxWidth, "max_width"),
+                (self.curvePoints, "curve_points"),
+                (self.filterRatio, "filter_ratio"),
+                (self.enabled, "enabled"),
+                (self.allowTwoSegments, "allow_two_segments"),
+                (self.preferZoneConnections, "prefer_zone_connections"),
+            ],
+            "teardrops",
+        )
+
+
+@dataclass
 class Via():
     """The ``via`` token defines a track via in a KiCad board
 
@@ -1145,6 +1241,9 @@ class Via():
     net: int = 0
     """The ``net`` token defines by net ordinal number which net in the net section that
     the via is part of"""
+
+    teardrops: Optional[Teardrops] = None
+    """Defines teardrop connections of via"""
 
     uuid: Optional[str] =""
     """The optional ``uuid`` defines the universally unique identifier"""
@@ -1188,6 +1287,7 @@ class Via():
             if item[0] == 'keep_end_layers': object.keepEndLayers = sexpr.parse_bool(item)
             if item[0] == 'free': object.free = sexpr.parse_bool(item)
             if item[0] == 'net': object.net = item[1]
+            if item[0] == 'teardrops': object.teardrops = Teardrops().from_sexpr(item)
             if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'zone_layer_connections':
                 object.zoneLayerConnections = []
@@ -1242,7 +1342,7 @@ class Via():
             free = f" (free yes)" if self.free else " (free no)"
         uuid = f' (uuid "{dequote(self.uuid)}")' if self.uuid is not None else ''
 
-        return f'{indents}(via{type}{locked} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){remove_unused_layers}{keep_end_layers}{free} {zone_layer_connections}(net {self.net}){uuid}){endline}'
+        return f'{indents}(via{type}{locked} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){remove_unused_layers}{keep_end_layers}{free} {zone_layer_connections}{sexpr.maybe_to_sexpr(self.teardrops)}(net {self.net}){uuid}){endline}'
 
 @dataclass
 class Arc():
