@@ -72,6 +72,8 @@ class Position():
                 object.angle = ex
             elif ex[0] == "unlocked":
                 object.unlocked = sexpr.parse_bool(ex)
+            else:
+                print(f"WARN: Unknown field in `Position`: `{ex[0]}`. Output file might be missing some data")
 
         return object
 
