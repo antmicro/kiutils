@@ -681,7 +681,7 @@ class Zone():
         else:
             layer_token = f' (layers{layers})'
 
-        expression =  f'{indents}(zone{locked} (net {self.net}) (net_name "{dequote(self.netName)}"){layer_token}{uuid}{name} (hatch {self.hatch.style} {self.hatch.pitch})\n'
+        expression =  f'{indents}(zone (net {self.net}) (net_name "{dequote(self.netName)}"){locked}{layer_token}{uuid}{name} (hatch {self.hatch.style} {self.hatch.pitch})\n'
         if self.priority is not None:
             expression += f"{indents}  (priority {self.priority})\n"
         expression += sexpr.maybe_to_sexpr(((self.attrTeardrop, "teardrop"), "attr"), indent=indent + 2, newline=True)

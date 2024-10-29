@@ -1342,7 +1342,7 @@ class Via():
             free = f" (free yes)" if self.free else " (free no)"
         uuid = f' (uuid "{dequote(self.uuid)}")' if self.uuid is not None else ''
 
-        return f'{indents}(via{type}{locked} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){remove_unused_layers}{keep_end_layers}{free} {zone_layer_connections}{sexpr.maybe_to_sexpr(self.teardrops)}(net {self.net}){uuid}){endline}'
+        return f'{indents}(via{type} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){locked}{remove_unused_layers}{keep_end_layers}{free}{zone_layer_connections}{sexpr.maybe_to_sexpr(self.teardrops)}(net {self.net}){uuid}){endline}'
 
 @dataclass
 class Arc():
@@ -1423,12 +1423,12 @@ class Arc():
         indents = ' '*indent
         endline = '\n' if newline else ''
 
-        locked = f'( locked yes )' if self.locked else ''
+        locked = f' ( locked yes )' if self.locked else ''
         uuid = f' (uuid "{dequote(self.uuid)}")' if self.uuid is not None else ''
 
-        expression = f'{indents}(arc{locked} (start {self.start.X} {self.start.Y}) '
+        expression = f'{indents}(arc (start {self.start.X} {self.start.Y}) '
         expression += f'(mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}) '
-        expression += f'(width {self.width}) (layer "{dequote(self.layer)}") '
+        expression += f'(width {self.width}){locked} (layer "{dequote(self.layer)}") '
         expression += f'(net {self.net}){uuid}){endline}'
         return expression
 

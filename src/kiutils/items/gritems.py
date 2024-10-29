@@ -113,9 +113,9 @@ class GrText():
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         layer =  f' (layer "{dequote(self.layer)}"{ko})' if self.layer is not None else ''
         uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
-        locked = f'(locked yes)' if self.locked else ''
+        locked = f' (locked yes)' if self.locked else ''
 
-        expression =  f'{indents}(gr_text "{dequote(self.text)}" (at {self.position.X} {self.position.Y}{posA}){locked}{layer}{uuid}\n'
+        expression =  f'{indents}(gr_text "{dequote(self.text)}"{locked} (at {self.position.X} {self.position.Y}{posA}){layer}{uuid}\n'
         expression += f'{indents}  {self.effects.to_sexpr()}'
         if self.renderCache is not None:
             expression += self.renderCache.to_sexpr(indent+2)
