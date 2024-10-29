@@ -833,7 +833,7 @@ class Footprint():
     attributes: Attributes = field(default_factory=lambda: Attributes())
     """The optional ``attributes`` section defines the attributes of the footprint"""
 
-    properties: List = field(default_factory=list)
+    properties: List[FpProperty] = field(default_factory=list)
     """The ``properties`` section defines the properties of the footprint"""
 
     privateLayers: List[str] = field(default_factory=list)

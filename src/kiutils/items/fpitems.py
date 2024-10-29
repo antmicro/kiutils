@@ -864,20 +864,20 @@ class FpProperty:
     value: str = ""
     """The ``value`` string defines the value of the property"""
 
-    position: Position = field(default_factory=lambda: Position())
+    position: Optional[Position] = None
     """The ``position`` defines the X and Y position coordinates and optional orientation angle of
     the text"""
 
-    layer: str = "F.Cu"
+    layer: Optional[str] = None
     """The ``layer`` token defines the canonical layer the text resides on"""
 
-    hide: bool = False
+    hide: Optional[bool] = None
     """The optional ``hide`` token, defines if the text is hidden"""
 
-    effects: Effects = field(default_factory=lambda: Effects())
+    effects: Optional[Effects] = None
     """The ``effects`` token defines how the text is displayed"""
 
-    uuid: Optional[str] = None     
+    uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier"""
 
     unlocked: Optional[bool] = None
@@ -902,19 +902,16 @@ class FpProperty:
         return object
 
     def to_sexpr(self, indent: int = 2, newline: bool = True) -> str:
-        indents = ' ' * indent
-        endline = '\n' if newline else ''
+        indents = " " * indent
+        endline = "\n" if newline else ""
 
-        hide = ' ( hide yes )' if self.hide else ''
-        if self.unlocked is not None:
-            unlocked = ' (unlocked yes)' if self.unlocked else ' (unlocked no)'
+        if self.key in ["ki_fp_filters"]:
+            key = self.key
         else:
-            unlocked = ''
-        posA = f' {self.position.angle}' if self.position.angle is not None else ''
+            key = f'"{self.key}"'
 
-        expression =  f'{indents}(property "{self.key}" "{self.value}" (at {self.position.X} {self.position.Y}{posA}){unlocked} (layer "{self.layer}"){hide}\n'
-        if self.uuid is not None:
-            expression += f'{indents}  (uuid "{self.uuid}")\n'
-        expression += f'{indents}  {self.effects.to_sexpr()}'
-        expression += f'{indents}){endline}'
+        expression = f'{indents}(property {key}{sexpr.maybe_to_sexpr([self.value, self.position, (self.unlocked, "unlocked"), (self.layer, "layer"), (self.hide, "hide")])}\n'
+        expression += sexpr.maybe_to_sexpr(self.uuid, "uuid", indent + 2, True)
+        expression += sexpr.maybe_to_sexpr(self.effects, indent=indent + 2)
+        expression += f"{indents}){endline}"
         return expression
