@@ -875,10 +875,13 @@ class Generated:
     layer: str = "F.Cu"
     """The ``layer`` token defines the canonical layer the tuned track resides on"""
 
+    locked: Optional[bool] = None
+    """The ``locked`` token defines if the object can be edited"""
+
     baseLine: List[str] = field(default_factory=list)
     """The ``baseLine`` token defines a primary line that tuned tracks are alligned to"""
 
-    baseLineCoupled: List[str] = field(default_factory=list)
+    baseLineCoupled: Optional[List[str]] = None
     """The ``baseLineCoupled`` token defines the coupled base line of the tuned tracks"""
 
     cornerRadius: int = 0
@@ -980,6 +983,8 @@ class Generated:
                 object.name = item[1]
             elif item[0] == "layer":
                 object.layer = item[1]
+            elif item[0] == "locked":
+                object.locked = sexpr.parse_bool(item)
             elif item[0] == "base_line":
                 pts = item[1]
                 if pts[0] == "pts":
@@ -988,6 +993,7 @@ class Generated:
             elif item[0] == "base_line_coupled":
                 pts = item[1]
                 if pts[0] == "pts":
+                    object.baseLineCoupled = []
                     for point in pts[1:]:
                         object.baseLineCoupled.append(point)
             elif item[0] == "corner_radius_percent":
@@ -1061,7 +1067,11 @@ class Generated:
         indents = " " * indent
         endline = "\n" if newline else ""
         baseLine = f"(base_line (pts{self.generate_xy(self.baseLine)}))"
-        baseLineCoupled = f"(base_line_coupled (pts{self.generate_xy(self.baseLineCoupled)}))"
+        baseLineCoupled = (
+            f"{endline}{indents}(base_line_coupled (pts{self.generate_xy(self.baseLineCoupled)}))"
+            if self.baseLineCoupled is not None
+            else ""
+        )
         end = f"(end ({self.end[0]} {self.end[1]} {self.end[2]}))"
         origin = f"(origin ({self.origin[0]} {self.origin[1]} {self.origin[2]}))"
         # create members list
@@ -1075,8 +1085,10 @@ class Generated:
         expression += f"{endline}{indents}(type {self.type})"
         expression += f'{endline}{indents}(name "{dequote(self.name)}")'
         expression += f'{endline}{indents}(layer "{dequote(self.layer)}")'
+        if self.locked is not None:
+           expression += "\n" + sexpr.maybe_to_sexpr(self.locked, "locked", indent)
         expression += f"{endline}{indents}{baseLine}"
-        expression += f"{endline}{indents}{baseLineCoupled}"
+        expression += baseLineCoupled
         expression += f"{endline}{indents}(corner_radius_percent {self.cornerRadius})"
         expression += f"{endline}{indents}{end}"
         expression += f'{endline}{indents}(initial_side "{dequote(self.initialSide)}")'
