@@ -30,7 +30,7 @@ from kiutils.items.brditems import Teardrops
 from kiutils.items.dimensions import *
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote, remove_prefix
-from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_PCB, KIUTILS_CREATE_NEW_GENERATOR_STR
+from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_PCB, KIUTILS_CREATE_NEW_GENERATOR_STR,KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
 
 @dataclass
 class Attributes():
@@ -754,8 +754,11 @@ class Footprint():
     version: Optional[str] = None
     """The ``version`` token attribute defines the symbol library version using the YYYYMMDD date format"""
 
-    generator: Optional[str] = None
+    generator: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_STR
     """The ``generator`` token attribute defines the program used to write the file"""
+
+    generator_version: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+    """The ``generator_version`` token attribute defines the program version used to write the file"""
 
     locked: bool = False
     """The optional ``locked`` token defines a flag to indicate the footprint cannot be edited"""
@@ -907,6 +910,7 @@ class Footprint():
             if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'version': object.version = item[1]
             if item[0] == 'generator': object.generator = item[1]
+            if item[0] == 'generator_version': object.generator_version = item[1]
             if item[0] == 'layer': object.layer = item[1]
             if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'descr': object.description = item[1]
@@ -995,7 +999,8 @@ class Footprint():
 
         fp = cls(
             version = KIUTILS_CREATE_NEW_VERSION_STR_PCB,
-            generator = KIUTILS_CREATE_NEW_GENERATOR_STR
+            generator = KIUTILS_CREATE_NEW_GENERATOR_STR,
+            generator_version = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
         )
         fp.libId = library_id
 
@@ -1063,9 +1068,9 @@ class Footprint():
         locked = ' (locked yes)' if self.locked else ''
         placed = ' placed' if self.placed else ''
         version = f' (version {self.version})' if self.version is not None else ''
-        generator = f' (generator {self.generator})' if self.generator is not None else ''
-
-        expression =  f'{indents}(footprint "{dequote(self.libId)}"{locked}{placed}{version}{generator}'
+        generator = f' (generator "{self.generator}")' if self.generator is not None else ''
+        generator_version = f' (generator_version "{self.generator_version}")' if self.generator_version is not None else ''
+        expression =  f'{indents}(footprint "{dequote(self.libId)}"{locked}{placed}{version}{generator}{generator_version}'
         if layerInFirstLine:
             expression += f' (layer "{dequote(self.layer)}")\n'
         else:
