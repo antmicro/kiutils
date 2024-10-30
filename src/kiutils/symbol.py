@@ -23,7 +23,7 @@ from kiutils.items.common import Effects, Position, Property, Font
 from kiutils.items.syitems import *
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote
-from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_SCH,KIUTILS_CREATE_NEW_GENERATOR_STR
+from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_SCH,KIUTILS_CREATE_NEW_GENERATOR_STR,KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
 
 @dataclass
 class SymbolAlternativePin():
@@ -572,8 +572,11 @@ class SymbolLib():
     version: str = KIUTILS_CREATE_NEW_VERSION_STR_SCH
     """The ``version`` token attribute defines the symbol library version using the YYYYMMDD date format"""
 
-    generator: Optional[str] = None
+    generator: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_STR
     """The ``generator`` token attribute defines the program used to write the file"""
+
+    generator_version: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+    """The ``generator`` token attribute defines the program version used to write the file"""
 
     symbols: List[Symbol] = field(default_factory=list)
     """The ``symbols`` token defines a list of zero or more symbols that are part of the symbol library"""
@@ -631,6 +634,7 @@ class SymbolLib():
         for item in exp[1:]:
             if item[0] == 'version': object.version = item[1]
             if item[0] == 'generator': object.generator = item[1]
+            if item[0] == 'generator_version': object.generator_version = item[1]
             if item[0] == 'symbol': object.symbols.append(Symbol().from_sexpr(item))
         return object
 
@@ -667,7 +671,7 @@ class SymbolLib():
         indents = ' '*indent
         endline = '\n' if newline else ''
 
-        expression =  f'{indents}(kicad_symbol_lib (version {self.version}) (generator {self.generator})\n'
+        expression =  f'{indents}(kicad_symbol_lib (version {self.version}) (generator "{self.generator}") (generator_version "{self.generator_version}")\n'
         for item in self.symbols:
             expression += f'{indents}{item.to_sexpr(indent+2)}'
         expression += f'{indents}){endline}'
