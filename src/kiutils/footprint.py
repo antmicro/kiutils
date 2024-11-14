@@ -629,15 +629,6 @@ class Pad():
 
         rrr = f' (roundrect_rratio {self.roundrectRatio})' if self.roundrectRatio is not None else ''
 
-        net = f' {self.net.to_sexpr()}' if self.net is not None else ''
-        pf = f' (pinfunction "{dequote(self.pinFunction)}")' if self.pinFunction is not None else ''
-        pt = f' (pintype "{dequote(self.pinType)}")' if self.pinType is not None else ''
-
-        # Check if a schematic symbol is associated with this footprint. This is usually set, if the
-        # footprint is used in a board file.
-        if net != '' or pf != '' or pt != '':
-            schematicSymbolAssociated = True
-
         uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
 
         if len(self.chamfer) > 0:
@@ -655,39 +646,29 @@ class Pad():
         else:
             position = f'(at {self.position.X} {self.position.Y})'
 
-        if self.solderMaskMargin is not None:
-            marginFound = True
-            smm = f' (solder_mask_margin {self.solderMaskMargin})'
-
-        if self.solderPasteMargin is not None:
-            marginFound = True
-            spm = f' (solder_paste_margin {self.solderPasteMargin})'
-
-        if self.solderPasteMarginRatio is not None:
-            marginFound = True
-            spmr = f' (solder_paste_margin_ratio {self.solderPasteMarginRatio})'
-
-        if self.clearance is not None:
-            marginFound = True
-            cl = f' (clearance {self.clearance})'
-
-        if self.zoneConnect is not None:
-            marginFound = True
-            zc = f' (zone_connect {self.zoneConnect})'
-
         expression =  f'{indents}(pad "{dequote(str(self.number))}" {self.type} {self.shape} {position} (size {self.size.X} {self.size.Y}){drill}{ppty}{locked}{layers}{remove_unused_layers}{keep_end_layers}{zone_layer_connections}{rrr}'
         if champferFound:
             # Only one whitespace here as all temporary strings have at least one leading whitespace
             expression += f'\n{indents} {cr}{c}'
 
-        if marginFound or schematicSymbolAssociated:
-            # Only one whitespace here as all temporary strings have at least one leading whitespace
-            expression += f"\n{indents} {net}{pf}{pt}{smm}{spm}{spmr}{cl}{zc}"
-        expression += sexpr.maybe_to_sexpr(self.dieLength, "die_length")
-        expression += sexpr.maybe_to_sexpr(self.thermalBridgeWidth, "thermal_bridge_width")
-        expression += sexpr.maybe_to_sexpr(self.thermalBridgeAngle, "thermal_bridge_angle")
-        expression += sexpr.maybe_to_sexpr(self.thermalGap, "thermal_gap")
-        expression += sexpr.maybe_to_sexpr(self.teardrops)
+        expression += sexpr.maybe_to_sexpr(
+            [
+                self.net,
+                (self.pinFunction, "pinfunction"),
+                (self.pinType, "pintype"),
+                (self.dieLength, "die_length"),
+                (self.solderMaskMargin, "solder_mask_margin"),
+                (self.solderPasteMargin, "solder_paste_margin"),
+                (self.solderPasteMarginRatio, "solder_paste_margin_ratio"),
+                (self.clearance, "clearance"),
+                (self.zoneConnect, "zone_connect"),
+                (self.thermalBridgeWidth, "thermal_bridge_width"),
+                (self.thermalBridgeAngle, "thermal_bridge_angle"),
+                (self.thermalGap, "thermal_gap"),
+                self.teardrops,
+            ]
+        )
+
         if self.customPadOptions is not None:
             expression += f'\n{indents}  {self.customPadOptions.to_sexpr()}'
 
@@ -754,10 +735,10 @@ class Footprint():
     version: Optional[str] = None
     """The ``version`` token attribute defines the symbol library version using the YYYYMMDD date format"""
 
-    generator: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_STR
+    generator: Optional[str] = None
     """The ``generator`` token attribute defines the program used to write the file"""
 
-    generator_version: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+    generator_version: Optional[str] = None
     """The ``generator_version`` token attribute defines the program version used to write the file"""
 
     locked: bool = False
