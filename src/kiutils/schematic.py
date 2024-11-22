@@ -173,6 +173,8 @@ class Schematic():
             if item[0] == 'symbol_instances':
                 for instance in item[1:]:
                     object.symbolInstances.append(SymbolInstance().from_sexpr(instance))
+                    
+        assert str(object.version) >= KIUTILS_CREATE_NEW_VERSION_STR_SCH, "kiutils supports only KiCad8+ files"
         return object
 
     @classmethod

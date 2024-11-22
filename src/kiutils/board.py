@@ -152,6 +152,7 @@ class Board():
             if item[0] == 'zone': object.zones.append(Zone().from_sexpr(item))
             if item[0] == 'group': object.groups.append(Group().from_sexpr(item))
 
+        assert str(object.version) >= KIUTILS_CREATE_NEW_VERSION_STR_PCB, "kiutils supports only KiCad8+ files"
         return object
 
     @classmethod

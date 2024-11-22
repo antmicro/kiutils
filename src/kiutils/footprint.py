@@ -728,7 +728,7 @@ class Footprint():
     """The optional ``libraryNickname`` token defines which symbol library this symbol belongs to
     and is a part of the ``id`` token"""
     
-    entryName: str = None
+    entryName: str = ""
     """The ``entryName`` token defines the actual name of the symbol and is a part of the ``id`` 
     token"""
 
@@ -738,7 +738,7 @@ class Footprint():
     generator: Optional[str] = None
     """The ``generator`` token attribute defines the program used to write the file"""
 
-    generator_version: Optional[str] = None
+    generatorVersion: Optional[str] = None
     """The ``generator_version`` token attribute defines the program version used to write the file"""
 
     locked: bool = False
@@ -891,7 +891,7 @@ class Footprint():
             if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
             if item[0] == 'version': object.version = item[1]
             if item[0] == 'generator': object.generator = item[1]
-            if item[0] == 'generator_version': object.generator_version = item[1]
+            if item[0] == 'generator_version': object.generatorVersion = item[1]
             if item[0] == 'layer': object.layer = item[1]
             if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'descr': object.description = item[1]
@@ -957,7 +957,9 @@ class Footprint():
             rawFootprint = infile.read()
 
             fpData = sexpr.parse_sexp(rawFootprint)
-            return cls.from_sexpr(fpData)
+            ret = cls.from_sexpr(fpData)
+            assert ret.version is not None and str(ret.version) >= KIUTILS_CREATE_NEW_VERSION_STR_PCB, "kiutils supports only KiCad8+ files"
+            return ret
 
     @classmethod
     def create_new(cls, library_id: str, value: str,
@@ -981,7 +983,7 @@ class Footprint():
         fp = cls(
             version = KIUTILS_CREATE_NEW_VERSION_STR_PCB,
             generator = KIUTILS_CREATE_NEW_GENERATOR_STR,
-            generator_version = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+            generatorVersion = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
         )
         fp.libId = library_id
 
@@ -1050,7 +1052,7 @@ class Footprint():
         placed = ' placed' if self.placed else ''
         version = f' (version {self.version})' if self.version is not None else ''
         generator = f' (generator "{self.generator}")' if self.generator is not None else ''
-        generator_version = f' (generator_version "{self.generator_version}")' if self.generator_version is not None else ''
+        generator_version = f' (generator_version "{self.generatorVersion}")' if self.generatorVersion is not None else ''
         expression =  f'{indents}(footprint "{dequote(self.libId)}"{locked}{placed}{version}{generator}{generator_version}'
         if layerInFirstLine:
             expression += f' (layer "{dequote(self.layer)}")\n'
