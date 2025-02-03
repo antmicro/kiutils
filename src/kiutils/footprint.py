@@ -958,7 +958,8 @@ class Footprint():
 
             fpData = sexpr.parse_sexp(rawFootprint)
             ret = cls.from_sexpr(fpData)
-            assert ret.version is not None and str(ret.version) >= KIUTILS_CREATE_NEW_VERSION_STR_PCB, "kiutils supports only KiCad8+ files"
+            # Even official KiCad libraries seem not to be fully migrated to newest version, so skip check
+            # assert ret.version is not None and str(ret.version) >= KIUTILS_CREATE_NEW_VERSION_STR_PCB, "kiutils supports only KiCad8+ files"
             return ret
 
     @classmethod
