@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 from os import path
 
-from kiutils.items.common import Group, Image, Net, PageSettings, TitleBlock
+from kiutils.items.common import Group, Image, Net, PageSettings, TitleBlock, EmbeddedFiles
 from kiutils.items.zones import Zone
 from kiutils.items.brditems import *
 from kiutils.items.gritems import *
@@ -99,6 +99,12 @@ class Board():
     """The ``filePath`` token defines the path-like string to the board file. Automatically set when
     ``self.from_file()`` is used. Allows the use of ``self.to_file()`` without parameters."""
 
+    embeddedFonts: Optional[bool] = None
+    """The ``embeddedFonts`` indicates that there are fonts embedded into this component"""
+
+    embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
+    """The ``embeddedFiles`` store data of embedded files"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Board:
         """Convert the given S-Expresstion into a Board object
@@ -151,6 +157,8 @@ class Board():
             if item[0] == 'via': object.traceItems.append(Via().from_sexpr(item))
             if item[0] == 'zone': object.zones.append(Zone().from_sexpr(item))
             if item[0] == 'group': object.groups.append(Group().from_sexpr(item))
+            if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
+            if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
 
         assert str(object.version) >= KIUTILS_CREATE_NEW_VERSION_STR_PCB, "kiutils supports only KiCad8+ files"
         return object
@@ -331,6 +339,9 @@ class Board():
 
         for gen in self.generated:
             expression += gen.to_sexpr(indent+2)
+
+        expression += sexpr.maybe_to_sexpr((self.embeddedFonts, "embedded_fonts"), indent=indent+2)
+        expression += self.embeddedFiles.to_sexpr(indent=indent+2)
 
         expression += f'{indents}){endline}'
         return expression

@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Union
 from os import path
 
-from kiutils.items.common import Image, PageSettings, TitleBlock
+from kiutils.items.common import Image, PageSettings, TitleBlock, EmbeddedFiles
 from kiutils.items.schitems import *
 from kiutils.symbol import Symbol, SchematicLibSymbol
 from kiutils.utils import sexpr
@@ -117,6 +117,12 @@ class Schematic():
     """The ``filePath`` token defines the path-like string to the schematic file. Automatically set when
     ``self.from_file()`` is used. Allows the use of ``self.to_file()`` without parameters."""
 
+    embeddedFonts: Optional[bool] = None
+    """The ``embeddedFonts`` indicates that there are fonts embedded into this component"""
+
+    embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
+    """The ``embeddedFiles`` store data of embedded files"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Schematic:
         """Convert the given S-Expresstion into a Schematic object
@@ -173,6 +179,8 @@ class Schematic():
             if item[0] == 'symbol_instances':
                 for instance in item[1:]:
                     object.symbolInstances.append(SymbolInstance().from_sexpr(instance))
+            if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
+            if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
                     
         assert str(object.version) >= KIUTILS_CREATE_NEW_VERSION_STR_SCH, "kiutils supports only KiCad8+ files"
         return object
@@ -270,6 +278,11 @@ class Schematic():
             for item in self.busAliases:
                 expression += item.to_sexpr(indent+2)
 
+        if self.texts:
+            expression += '\n'
+            for item in self.texts:
+                expression += item.to_sexpr(indent+2)
+
         if self.junctions:
             expression += '\n'
             for item in self.junctions:
@@ -302,11 +315,6 @@ class Schematic():
         if self.textBoxes:
             expression += '\n'
             for item in self.textBoxes:
-                expression += item.to_sexpr(indent+2)
-
-        if self.texts:
-            expression += '\n'
-            for item in self.texts:
                 expression += item.to_sexpr(indent+2)
 
         if self.labels:
@@ -352,6 +360,9 @@ class Schematic():
             for item in self.symbolInstances:
                 expression += item.to_sexpr(indent+4)
             expression += '  )\n'
+            
+        expression += sexpr.maybe_to_sexpr((self.embeddedFonts, "embedded_fonts"), indent=indent+2)
+        expression += self.embeddedFiles.to_sexpr(indent=indent+2)
 
         expression += f'{indents}){endline}'
         return expression

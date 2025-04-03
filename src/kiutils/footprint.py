@@ -23,7 +23,7 @@ from typing import Optional, List, Dict
 from os import path
 
 from kiutils.items.zones import Zone
-from kiutils.items.common import Image, Position, Coordinate, Net, Group, Font
+from kiutils.items.common import Image, Position, Coordinate, Net, Group, Font, EmbeddedFiles
 from kiutils.items.fpitems import *
 from kiutils.items.gritems import *
 from kiutils.items.brditems import Teardrops
@@ -862,6 +862,12 @@ class Footprint():
     sheetfile: Optional[str] = None
     """Indicates in which schematic file was linked symbol added"""
 
+    embeddedFonts: Optional[bool] = None
+    """The ``embeddedFonts`` indicates that there are fonts embedded into this component"""
+
+    embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
+    """The ``embeddedFiles`` store data of embedded files"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Footprint:
         """Convert the given S-Expresstion into a Footprint object
@@ -931,6 +937,8 @@ class Footprint():
                 for layer in item[1:]:
                     object.netTiePadGroups.append(layer)
             if item[0] == 'dimension': object.graphicItems.append(Dimension.from_sexpr(item))
+            if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
+            if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
 
         return object
 
@@ -1120,6 +1128,8 @@ class Footprint():
             expression += item.to_sexpr(indent=indent+2)
         for item in self.groups:
             expression += item.to_sexpr(indent=indent+2)
+        expression += sexpr.maybe_to_sexpr((self.embeddedFonts, "embedded_fonts"), indent=indent+2)
+        expression += self.embeddedFiles.to_sexpr(indent=indent+2)
         for item in self.models:
             expression += item.to_sexpr(indent=indent+2)
 

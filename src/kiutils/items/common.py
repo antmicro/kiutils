@@ -1206,3 +1206,104 @@ class ProjectInstance(ABC):
     @abstractmethod
     def to_sexpr(self, indent=2, newline=True) -> str:
         raise NotImplementedError
+
+@dataclass
+class EmbeddedFile():
+    """The ``file`` token attributes store single file embedded data."""
+    name: str =""
+    """File name"""
+    type: Rstr = Rstr("")
+    """Type of file data (eg. font)"""
+    data: Optional[Rstr] = None
+    """File binary data"""
+    checksum: str= ""
+    """File data checksum"""
+
+
+    @classmethod
+    def from_sexpr(cls, exp: list) -> EmbeddedFile:
+        """Convert the given S-Expression into a EmbeddedFile object
+
+        Args:
+            - exp (list): Part of parsed S-Expression ``(file ...)``
+
+        Raises:
+            - Exception: When given parameter's type is not a list
+            - Exception: When the first item of the list is not file
+
+        Returns:
+            - EmbeddedFile: Object of the class initialized with the given S-Expression
+        """
+        if not isinstance(exp, list):
+            raise Exception("Expression does not have the correct type")
+
+        if exp[0] != 'file':
+            raise Exception("Expression does not have the correct type")
+
+        obj = cls()
+        for item in exp:
+            if item[0] == 'name': obj.name = item[1]
+            if item[0] == 'type': obj.type = Rstr(item[1])
+            if item[0] == 'data': 
+                obj.data = Rstr("")
+                for i in item[1:]:
+                    obj.data = Rstr(obj.data + i + "\n")
+            if item[0] == 'checksum': obj.checksum = item[1]
+        return obj
+
+    def to_sexpr(self, indent=0, newline=False) -> str:
+        """Generate the S-Expression representing this object
+
+        Args:
+            - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
+            - newline (bool): Adds a newline to the end of the output. Defaults to False.
+
+        Returns:
+            - str: S-Expression of this object
+        """
+        
+        return sexpr.maybe_to_sexpr([(self.name, "name"), (self.type, "type"), (self.data, "data"), (self.checksum, "checksum")], "file", indent=indent, newline=newline)
+
+@dataclass
+class EmbeddedFiles(List[EmbeddedFile]):
+    """The ``embedded_files`` token attributes store embedded file data."""
+
+
+    @classmethod
+    def from_sexpr(cls, exp: list) -> EmbeddedFiles:
+        """Convert the given S-Expression into a EmbeddedFile object
+
+        Args:
+            - exp (list): Part of parsed S-Expression ``(file ...)``
+
+        Raises:
+            - Exception: When given parameter's type is not a list
+            - Exception: When the first item of the list is not file
+
+        Returns:
+            - EmbeddedFile: Object of the class initialized with the given S-Expression
+        """
+        if not isinstance(exp, list):
+            raise Exception("Expression does not have the correct type")
+
+        if exp[0] != 'embedded_files':
+            raise Exception("Expression does not have the correct type")
+
+        obj = cls()
+        for item in exp[1:]:
+            obj.append(EmbeddedFile.from_sexpr(item))
+        return obj
+
+    def to_sexpr(self, indent=0, newline=False) -> str:
+        """Generate the S-Expression representing this object
+
+        Args:
+            - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
+            - newline (bool): Adds a newline to the end of the output. Defaults to False.
+
+        Returns:
+            - str: S-Expression of this object
+        """
+        if len(self) == 0:
+            return ""
+        return sexpr.maybe_to_sexpr(self, name="embedded_files", indent=indent, newline=newline)

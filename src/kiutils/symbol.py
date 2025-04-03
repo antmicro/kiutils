@@ -19,7 +19,7 @@ from typing import Optional, List
 from os import path
 import re
 
-from kiutils.items.common import Effects, Position, Property, Font
+from kiutils.items.common import Effects, Position, Property, Font, EmbeddedFiles
 from kiutils.items.syitems import *
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote
@@ -358,6 +358,12 @@ class Symbol():
     excludeFromSim: Optional[bool] = None
     """The ``excludeFromSim`` indicates that component should not be taken into account during simulation"""
 
+    embeddedFonts: Optional[bool] = None
+    """The ``embeddedFonts`` indicates that there are fonts embedded into this component"""
+
+    embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
+    """The ``embeddedFiles`` store data of embedded files"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Symbol:
         """Convert the given S-Expression into a Symbol object
@@ -405,6 +411,8 @@ class Symbol():
             if item[0] == 'text': object.graphicItems.append(SyText().from_sexpr(item))
             if item[0] == 'text_box': object.graphicItems.append(SyTextBox().from_sexpr(item))
             if item[0] == 'exclude_from_sim': object.excludeFromSim = sexpr.parse_bool(item)
+            if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
+            if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
 
         return object
 
@@ -479,6 +487,8 @@ class Symbol():
             expression += item.to_sexpr(indent+2)
         for item in self.units:
             expression += item.to_sexpr(indent+2)
+        expression += sexpr.maybe_to_sexpr((self.embeddedFonts, "embedded_fonts"), indent=indent+2)
+        expression += self.embeddedFiles.to_sexpr(indent=indent+2)
         expression += f'{indents}){endline}'
         return expression
 
