@@ -25,6 +25,8 @@ from kiutils.symbol import Symbol, SchematicLibSymbol
 from kiutils.utils import sexpr
 from kiutils.misc.config import KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_VERSION_STR_SCH, KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
 
+GraphicalItem = Union[Connection, PolyLine, Arc, Circle, Rectangle, Text, TextBox, Junction, NoConnect, BusEntry, Image]
+
 @dataclass
 class Schematic():
     """The ``schematic`` token represents a KiCad schematic as defined by the schematic file format
@@ -57,36 +59,11 @@ class Schematic():
     schematicSymbols: List[SchematicSymbol] = field(default_factory=list)
     """The ``schematicSymbols`` token defines a list of instances of symbols used in the schematic"""
 
-    junctions: List[Junction] = field(default_factory=list)
-    """The ``junctions`` token defines a list of junctions used in the schematic"""
-
-    noConnects: List[NoConnect] = field(default_factory=list)
-    """The ``noConnect`` token defines a list of no_connect markers used in the schematic"""
-
-    busEntries: List[BusEntry] = field(default_factory=list)
-    """The ``busEntries`` token defines a list of bus_entry used in the schematic"""
-
     busAliases: List[BusAlias] = field(default_factory=list)
     """The ``busAliases`` token defines a list of bus_alias used in the schematic"""
 
-    graphicalItems: List[Union[Connection, PolyLine]] = field(default_factory=list)
-    """The ``graphicalItems`` token defines a list of ``bus``, ``wire`` or ``polyline`` elements 
-    used in the schematic"""
-
-    shapes: List[Union[Arc, Circle, Rectangle]] = field(default_factory=list)
-    """The ``shapes`` token defines a list of graphical shapes (``Arc``, ``Rectangle`` or 
-    ``Circle``) used in the schematic.
-    
-    Available since KiCad v7"""
-
-    images: List[Image] = field(default_factory=list)
-    """The ``images`` token defines a list of images used in the schematic"""
-
-    texts: List[Text] = field(default_factory=list)
-    """The ``text`` token defines a list of texts used in the schematic"""
-
-    textBoxes: List[TextBox] = field(default_factory=list)
-    """The ``text_box`` token defines a list of text boxes used in the schematic"""
+    graphicalItems: List[GraphicalItem] = field(default_factory=list)
+    """The ``graphicalItems`` token defines a list of graphical elements used in the schematic"""
 
     labels: List[LocalLabel] = field(default_factory=list)
     """The ``labels`` token defines a list of local labels used in the schematic"""
@@ -123,6 +100,11 @@ class Schematic():
     embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
     """The ``embeddedFiles`` store data of embedded files"""
 
+    @property
+    def images(self) -> List[Image]:
+        """Get all images from schematic"""
+        return [i for i in self.graphicalItems if isinstance(i, Image)]
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Schematic:
         """Convert the given S-Expresstion into a Schematic object
@@ -154,19 +136,19 @@ class Schematic():
             if item[0] == 'lib_symbols':
                 for symbol in item[1:]:
                     object.libSymbols.append(SchematicLibSymbol().from_sexpr(symbol))
-            if item[0] == 'junction': object.junctions.append(Junction().from_sexpr(item))
-            if item[0] == 'no_connect': object.noConnects.append(NoConnect().from_sexpr(item))
-            if item[0] == 'bus_entry': object.busEntries.append(BusEntry().from_sexpr(item))
+            if item[0] == 'junction': object.graphicalItems.append(Junction().from_sexpr(item))
+            if item[0] == 'no_connect': object.graphicalItems.append(NoConnect().from_sexpr(item))
+            if item[0] == 'bus_entry': object.graphicalItems.append(BusEntry().from_sexpr(item))
             if item[0] == 'bus_alias': object.busAliases.append(BusAlias().from_sexpr(item))
             if item[0] == 'wire': object.graphicalItems.append(Connection().from_sexpr(item))
             if item[0] == 'bus': object.graphicalItems.append(Connection().from_sexpr(item))
             if item[0] == 'polyline': object.graphicalItems.append(PolyLine().from_sexpr(item))
-            if item[0] == 'arc': object.shapes.append(Arc.from_sexpr(item))
-            if item[0] == 'circle': object.shapes.append(Circle.from_sexpr(item))
-            if item[0] == 'rectangle': object.shapes.append(Rectangle.from_sexpr(item))
-            if item[0] == 'image': object.images.append(Image().from_sexpr(item))
-            if item[0] == 'text': object.texts.append(Text().from_sexpr(item))
-            if item[0] == 'text_box': object.textBoxes.append(TextBox().from_sexpr(item))
+            if item[0] == 'arc': object.graphicalItems.append(Arc.from_sexpr(item))
+            if item[0] == 'circle': object.graphicalItems.append(Circle.from_sexpr(item))
+            if item[0] == 'rectangle': object.graphicalItems.append(Rectangle.from_sexpr(item))
+            if item[0] == 'image': object.graphicalItems.append(Image().from_sexpr(item))
+            if item[0] == 'text': object.graphicalItems.append(Text().from_sexpr(item))
+            if item[0] == 'text_box': object.graphicalItems.append(TextBox().from_sexpr(item))
             if item[0] == 'label': object.labels.append(LocalLabel().from_sexpr(item))
             if item[0] == 'global_label': object.globalLabels.append(GlobalLabel().from_sexpr(item))
             if item[0] == 'hierarchical_label': object.hierarchicalLabels.append(HierarchicalLabel().from_sexpr(item))
@@ -278,43 +260,9 @@ class Schematic():
             for item in self.busAliases:
                 expression += item.to_sexpr(indent+2)
 
-        if self.texts:
-            expression += '\n'
-            for item in self.texts:
-                expression += item.to_sexpr(indent+2)
-
-        if self.junctions:
-            expression += '\n'
-            for item in self.junctions:
-                expression += item.to_sexpr(indent+2)
-
-        if self.noConnects:
-            expression += '\n'
-            for item in self.noConnects:
-                expression += item.to_sexpr(indent+2)
-
-        if self.busEntries:
-            expression += '\n'
-            for item in self.busEntries:
-                expression += item.to_sexpr(indent+2)
         if self.graphicalItems:
             expression += '\n'
             for item in self.graphicalItems:
-                expression += item.to_sexpr(indent+2)
-
-        if self.shapes:
-            expression += '\n'
-            for item in self.shapes:
-                expression += item.to_sexpr(indent+2)
-
-        if self.images:
-            expression += '\n'
-            for item in self.images:
-                expression += item.to_sexpr(indent+2)
-
-        if self.textBoxes:
-            expression += '\n'
-            for item in self.textBoxes:
                 expression += item.to_sexpr(indent+2)
 
         if self.labels:

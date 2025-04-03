@@ -428,7 +428,7 @@ class PolyLine():
         if self.fill is not None:
             expression += self.fill.to_sexpr(indent+2)
         if self.uuid is not None:
-            if self.fill is None: #This is to match KiCad8 behavior (as of 8.0.5)
+            if self.fill is None: #This is to match KiCad9 behavior (as of 9.0.0)
                 expression += f'{indents}  (uuid "{self.uuid}")\n'
             else:
                 expression += f'{indents}  (uuid {self.uuid})\n'
@@ -1463,7 +1463,7 @@ class HierarchicalSheet():
        key should therefore be set to `Sheet file`"""
 
     properties: List[Property] = field(default_factory=list)
-    """The ``properties`` section defines a list of properties defined for the hiererchical sheet.
+    """The ``properties`` section defines a list of properties defined for the hierarchical sheet.
        This holds all properties except that held by ``sheetName`` and ``fileName`` members."""
 
     pins: List[HierarchicalPin] = field(default_factory=list)
@@ -1793,7 +1793,7 @@ class Arc():
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Arc:
-        """Convert the given S-Expresstion into a Arc object
+        """Convert the given S-Expression into a Arc object
 
         Args:
             - exp (list): Part of parsed S-Expression ``(arc ...)``
@@ -1839,7 +1839,10 @@ class Arc():
         expression += self.stroke.to_sexpr(indent+2)
         expression += self.fill.to_sexpr(indent+2)
         if self.uuid is not None:
-            expression += f'{indents}  (uuid "{self.uuid}")\n'
+            if self.fill is None: #This is to match KiCad9 behavior (as of 9.0.0)
+                expression += f'{indents}  (uuid "{self.uuid}")\n'
+            else:
+                expression += f'{indents}  (uuid {self.uuid})\n'
         expression += f'{indents}){endline}'
         return expression
 
