@@ -15,21 +15,19 @@ Documentation taken from:
 
 from __future__ import annotations
 
-import calendar
-import datetime
 import re
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict
+from typing import Optional, List
 from os import path
 
 from kiutils.items.zones import Zone
-from kiutils.items.common import Image, Position, Coordinate, Net, Group, Font, EmbeddedFiles
+from kiutils.items.common import Image, Position, Coordinate, Net, Group, Font, EmbeddedFiles, PCBTable
 from kiutils.items.fpitems import *
 from kiutils.items.gritems import *
 from kiutils.items.brditems import Teardrops
 from kiutils.items.dimensions import *
 from kiutils.utils import sexpr
-from kiutils.utils.strings import dequote, remove_prefix
+from kiutils.utils.strings import dequote
 from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_PCB, KIUTILS_CREATE_NEW_GENERATOR_STR,KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
 
 @dataclass
@@ -868,6 +866,9 @@ class Footprint():
     embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
     """The ``embeddedFiles`` store data of embedded files"""
 
+    tables: List[PCBTable] = field(default_factory=list)
+    """Defines list of tables and their contents"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Footprint:
         """Convert the given S-Expresstion into a Footprint object
@@ -939,6 +940,7 @@ class Footprint():
             if item[0] == 'dimension': object.graphicItems.append(Dimension.from_sexpr(item))
             if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
             if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
+            if item[0] == 'table': object.tables.append(PCBTable.from_sexpr(item))
 
         return object
 
@@ -1122,6 +1124,10 @@ class Footprint():
             expression += f')\n'
         for item in self.graphicItems:
             expression += item.to_sexpr(indent=indent+2)
+        if self.tables:
+            expression += '\n'
+            for item in self.tables:
+                expression += item.to_sexpr(indent+2)
         for item in self.pads:
             expression += item.to_sexpr(indent=indent+2)
         for item in self.zones:

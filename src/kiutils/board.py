@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 from os import path
 
-from kiutils.items.common import Group, Image, Net, PageSettings, TitleBlock, EmbeddedFiles
+from kiutils.items.common import Group, Image, Net, PageSettings, TitleBlock, EmbeddedFiles, PCBTable
 from kiutils.items.zones import Zone
 from kiutils.items.brditems import *
 from kiutils.items.gritems import *
@@ -105,6 +105,9 @@ class Board():
     embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
     """The ``embeddedFiles`` store data of embedded files"""
 
+    tables: List[PCBTable] = field(default_factory=list)
+    """Defines list of tables and their contents"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Board:
         """Convert the given S-Expresstion into a Board object
@@ -159,6 +162,7 @@ class Board():
             if item[0] == 'group': object.groups.append(Group().from_sexpr(item))
             if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
             if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
+            if item[0] == 'table': object.tables.append(PCBTable.from_sexpr(item))
 
         assert str(object.version) >= KIUTILS_CREATE_NEW_VERSION_STR_PCB, "kiutils supports only KiCad8+ files"
         return object
@@ -307,6 +311,11 @@ class Board():
                     expression += item.to_sexpr(indent+2, pts_newline=True)
                 else:
                     expression += item.to_sexpr(indent+2)
+
+        if self.tables:
+            expression += '\n'
+            for item in self.tables:
+                expression += item.to_sexpr(indent+2)
 
         # Dimensions
         if len(self.dimensions) > 0:

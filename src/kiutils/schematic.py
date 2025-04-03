@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Union
 from os import path
 
-from kiutils.items.common import Image, PageSettings, TitleBlock, EmbeddedFiles
+from kiutils.items.common import Image, PageSettings, TitleBlock, EmbeddedFiles, SchTable
 from kiutils.items.schitems import *
 from kiutils.symbol import Symbol, SchematicLibSymbol
 from kiutils.utils import sexpr
@@ -100,6 +100,9 @@ class Schematic():
     embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
     """The ``embeddedFiles`` store data of embedded files"""
 
+    tables: List[SchTable] = field(default_factory=list)
+    """Defines list of tables and their contents"""
+
     @property
     def images(self) -> List[Image]:
         """Get all images from schematic"""
@@ -163,6 +166,7 @@ class Schematic():
                     object.symbolInstances.append(SymbolInstance().from_sexpr(instance))
             if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
             if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
+            if item[0] == 'table': object.tables.append(SchTable.from_sexpr(item))
                     
         assert str(object.version) >= KIUTILS_CREATE_NEW_VERSION_STR_SCH, "kiutils supports only KiCad8+ files"
         return object
@@ -263,6 +267,11 @@ class Schematic():
         if self.graphicalItems:
             expression += '\n'
             for item in self.graphicalItems:
+                expression += item.to_sexpr(indent+2)
+
+        if self.tables:
+            expression += '\n'
+            for item in self.tables:
                 expression += item.to_sexpr(indent+2)
 
         if self.labels:

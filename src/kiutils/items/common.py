@@ -18,11 +18,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, ClassVar
 
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
-from kiutils.utils.sexpr import Rstr
+from kiutils.utils.sexpr import Rstr, SexprAuto
 
 @dataclass
 class Position():
@@ -31,7 +31,7 @@ class Position():
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_position_identifier
     """
-
+    sexpr_prefix: ClassVar[str] = "at"
     X: float = 0.0
     """The ``X`` attribute defines the horizontal position of the object"""
 
@@ -63,7 +63,6 @@ class Position():
         """
         if not isinstance(exp, list) or len(exp) < 3:
             raise Exception("Expression does not have the correct type")
-
         object = cls()
         object.X = exp[1]
         object.Y = exp[2]
@@ -75,7 +74,6 @@ class Position():
                 object.unlocked = sexpr.parse_bool(ex)
             else:
                 print(f"WARN: Unknown field in `Position`: `{ex[0]}`. Output file might be missing some data")
-
         return object
 
     def to_sexpr(self) -> str:
@@ -88,7 +86,14 @@ class Position():
         Returns:
             - str: S-Expression of this object  
         """
-        return sexpr.maybe_to_sexpr( [self.X, self.Y, self.angle, (self.unlocked, "unlocked")], "at" )
+        return sexpr.maybe_to_sexpr( [self.X, self.Y, self.angle, (self.unlocked, "unlocked")], self.sexpr_prefix )
+
+class PositionStart(Position):
+    """Same as ``Position`` class but SerDe with `start` instead `at`."""
+    sexpr_prefix: ClassVar[str] = "start"
+class PositionEnd(Position):
+    """Same as ``Position`` class but SerDe with `end` instead `at`."""
+    sexpr_prefix: ClassVar[str] = "end"
 
 @dataclass
 class Coordinate():
@@ -1268,7 +1273,6 @@ class EmbeddedFile():
 class EmbeddedFiles(List[EmbeddedFile]):
     """The ``embedded_files`` token attributes store embedded file data."""
 
-
     @classmethod
     def from_sexpr(cls, exp: list) -> EmbeddedFiles:
         """Convert the given S-Expression into a EmbeddedFile object
@@ -1307,3 +1311,73 @@ class EmbeddedFiles(List[EmbeddedFile]):
         if len(self) == 0:
             return ""
         return sexpr.maybe_to_sexpr(self, name="embedded_files", indent=indent, newline=newline)
+
+
+@dataclass
+class TableBorder(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "border"
+    external: bool = False
+    header: bool = False
+    stroke: Optional[Stroke] = None
+
+
+@dataclass
+class TableSeparators(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "separators"
+    rows: bool = False
+    cols: bool = False
+    stroke: Optional[Stroke] = None
+
+
+@dataclass
+class SchTableCell(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "table_cell"
+    positional_args: ClassVar[List[str]] = ["text"]
+    text: str = ""
+    exclude_from_sim: bool = False
+    position: Position = field(default_factory=Position)
+    size: List[float] = field(default_factory=list)
+    margins: List[float] = field(default_factory=list)
+    span: List[float] = field(default_factory=list)
+    fill: Optional[Fill] = None
+    effects: Optional[Effects] = None
+    uuid: str = ""
+
+
+@dataclass
+class SchTable(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "table"
+    column_count: int = 0
+    locked: Optional[bool]=None
+    border: TableBorder = field(default_factory=TableBorder)
+    separators: TableSeparators = field(default_factory=TableSeparators)
+    column_widths: List[float] = field(default_factory=list)
+    row_heights: List[float] = field(default_factory=list)
+    cells: List[SchTableCell] = field(default_factory=list)
+
+@dataclass
+class PCBTableCell(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "table_cell"
+    positional_args: ClassVar[List[str]] = ["text"]
+    text: str = ""
+    start: PositionStart = field(default_factory=PositionStart)
+    end: PositionEnd = field(default_factory=PositionEnd)
+    margins: List[float] = field(default_factory=list)
+    span: List[float] = field(default_factory=list)
+    layer: str="Cmts.User"
+    uuid: str = ""
+    fill: Optional[Fill] = None
+    effects: Optional[Effects] = None
+
+
+@dataclass
+class PCBTable(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "table"
+    column_count: int = 0
+    locked: Optional[bool]=None
+    layer: str="Cmts.User"
+    border: TableBorder = field(default_factory=TableBorder)
+    separators: TableSeparators = field(default_factory=TableSeparators)
+    column_widths: List[float] = field(default_factory=list)
+    row_heights: List[float] = field(default_factory=list)
+    cells: List[PCBTableCell] = field(default_factory=list)

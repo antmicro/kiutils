@@ -327,10 +327,10 @@ class Dimension():
             expression +=  f'{indents}  (orientation {self.orientation})\n'
         if self.leaderLength is not None:
             expression +=  f'{indents}  (leader_length {self.leaderLength})\n'
-        if self.grText is not None:
-            expression += self.grText.to_sexpr(indent+2)
         if self.format is not None:
             expression += self.format.to_sexpr(indent+2)
         expression += self.style.to_sexpr(indent+2)
+        if self.grText is not None:
+            expression += self.grText.to_sexpr(indent+2)
         expression +=  f'{indents}){endline}'
         return expression
