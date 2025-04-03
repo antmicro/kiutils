@@ -22,6 +22,7 @@ from typing import Optional, List, Dict
 
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
+from kiutils.utils.sexpr import Rstr
 
 @dataclass
 class Position():
@@ -274,7 +275,6 @@ class Stroke():
         return f'{indents}(stroke (width {self.width}){the_type}{color}){endline}'
 
 
-
 @dataclass
 class Font():
     """The ``font`` token attributes define how text is shown.
@@ -453,7 +453,7 @@ class Effects():
     justify: Justify = field(default_factory=lambda: Justify())
     """The ``justify`` token defines the justification of the text"""
 
-    hide: bool = False
+    hide: Optional[bool] = None
     """The optional ``hide`` token defines if the text is hidden"""
 
     href: Optional[str] = None
@@ -463,7 +463,7 @@ class Effects():
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Effects:
-        """Convert the given S-Expresstion into a Effects object
+        """Convert the given S-Expression into a Effects object
 
         Args:
             - exp (list): Part of parsed S-Expression ``(effects ...)``
@@ -475,19 +475,32 @@ class Effects():
         Returns:
             - Effects: Object of the class initialized with the given S-Expression
         """
+        object = cls()
+        object.from_sexpr_update(exp)
+        return object
+
+    def from_sexpr_update(self, exp: list) -> None:
+        """Convert the given S-Expression and update self
+
+        Args:
+            - exp (list): Part of parsed S-Expression ``(effects ...)``
+
+        Raises:
+            - Exception: When given parameter's type is not a list
+            - Exception: When the first item of the list is not effects
+        """
         if not isinstance(exp, list):
             raise Exception("Expression does not have the correct type")
 
         if exp[0] != 'effects':
             raise Exception("Expression does not have the correct type")
 
-        object = cls()
         for item in exp:
-            if item[0] == 'hide': object.hide = sexpr.parse_bool(item) 
-            if item[0] == 'font': object.font = Font().from_sexpr(item)
-            if item[0] == 'justify': object.justify = Justify().from_sexpr(item)
-            if item[0] == 'href': object.href = item[1]
-        return object
+            if item[0] == 'hide': self.hide = sexpr.parse_bool(item) 
+            if item[0] == 'font': self.font = Font().from_sexpr(item)
+            if item[0] == 'justify': self.justify = Justify().from_sexpr(item)
+            if item[0] == 'href': self.href = item[1]
+
 
     def to_sexpr(self, indent=0, newline=True) -> str:
         """Generate the S-Expression representing this object
@@ -503,11 +516,11 @@ class Effects():
         endline = '\n' if newline else ''
 
         justify = f' {self.justify.to_sexpr()}' if self.justify.to_sexpr() != '' else ''
-        hide = f'( hide yes )' if self.hide else ''
+        hide = f'{indents}(effects ( hide yes ))\n' if self.hide else ''
         href = f' (href "{dequote(self.href)}")' if self.href is not None else ''
 
-        expression =  f'{indents}(effects {self.font.to_sexpr()}{justify}{href}{hide}){endline}'
-        return expression
+        expression =  f'{indents}(effects {self.font.to_sexpr()}{justify}{href}){endline}'
+        return hide+expression
 
 
 @dataclass
@@ -822,6 +835,9 @@ class Property():
     """The ``position`` defines the X and Y coordinates as well as the rotation angle of the property.
     All three items will initially be set to zero."""
 
+    hide: Optional[bool] = None
+    """The optional ``hide`` token, defines if the text is hidden"""
+
     effects: Optional[Effects] = None
     """The optional ``effects`` section defines how the text is displayed"""
 
@@ -857,7 +873,12 @@ class Property():
         for item in exp[3:]:
             if item[0] == 'id': object.id = item[1]
             if item[0] == 'at': object.position = Position().from_sexpr(item)
-            if item[0] == 'effects': object.effects = Effects().from_sexpr(item)
+            if item[0] == 'hide': object.hide = sexpr.parse_bool(item)
+            if item[0] == 'effects': 
+                if object.effects: 
+                    object.effects.from_sexpr_update(item)
+                else: 
+                    object.effects = Effects().from_sexpr(item)
             if item[0] == 'show_name': object.showName = sexpr.parse_bool(item)
         return object
 
@@ -871,22 +892,25 @@ class Property():
         Returns:
             - str: S-Expression of this object
         """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-
-        posA = f' {self.position.angle}' if self.position.angle is not None else ''
-        id = f' (id {self.id})' if self.id is not None else ''
-        sn = sexpr.maybe_to_sexpr(self.showName,"show_name") 
+        sn = sexpr.maybe_to_sexpr(self.showName, "show_name") 
         if self.effects is not None and self.effects.hide: 
             sn = " (show_name)" if self.showName else ""
 
-        expression =  f'{indents}(property "{dequote(self.key)}" "{dequote(self.value)}"{id} (at {self.position.X} {self.position.Y}{posA}){sn}'
-        if self.effects is not None:
-            expression += f'\n{self.effects.to_sexpr(indent+2)}'
-            expression += f'{indents}){endline}'
-        else:
-            expression += f'){endline}'
-        return expression
+        return sexpr.maybe_to_sexpr(
+            [
+                self.key,
+                self.value,
+                (self.id, "id"),
+                self.position,
+                (self.hide, "hide"),
+                Rstr(sn),
+                self.effects,
+            ],
+            "property",
+            indent=indent,
+            newline=newline,
+        )
+
 
 @dataclass
 class RenderCachePolygon():

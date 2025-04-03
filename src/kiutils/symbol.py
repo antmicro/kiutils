@@ -311,7 +311,7 @@ class Symbol():
     current library from which to derive a new symbol. Extended symbols currently can only have
     different symbol properties than their parent symbol."""
 
-    hidePinNumbers: bool = False
+    hidePinNumbers: Optional[bool] = None
     """The ``pin_numbers`` token defines the visibility setting of the symbol pin numbers for
     the entire symbol. If set to False, the all of the pin numbers in the symbol are visible."""
 
@@ -319,8 +319,8 @@ class Symbol():
     """The optional ``pinNames`` token defines the attributes for all of the pin names of the symbol.
     If the ``pinNames`` token is not defined, all symbol pins are shown with the default offset."""
 
-    pinNamesHide: bool = False
-    """The optional ``pinNamesOffset`` token defines the pin name of all pins should be hidden"""
+    pinNamesHide: Optional[bool] = None
+    """The optional ``pinNamesOffset`` token defines that pin name of all pins should be hidden"""
 
     pinNamesOffset: Optional[float] = None
     """The optional ``pinNamesOffset`` token defines the pin name offset for all pin names of the
@@ -383,15 +383,12 @@ class Symbol():
         for item in exp[2:]:
             if item[0] == 'extends': object.extends = item[1]
             if item[0] == 'pin_numbers':
-                if item[1] == 'hide':
-                    object.hidePinNumbers = True
+                if item[1][0] == 'hide': object.hidePinNumbers = sexpr.parse_bool(item[1])
             if item[0] == 'pin_names':
                 object.pinNames = True
                 for property in item[1:]:
-                    if type(property) == type([]):
-                        if property[0] == 'offset': object.pinNamesOffset = property[1]
-                    else:
-                        if property == 'hide': object.pinNamesHide = True
+                    if property[0] == 'offset': object.pinNamesOffset = property[1]
+                    elif property[0] == 'hide': object.pinNamesHide = sexpr.parse_bool(property)
             if item[0] == 'in_bom': object.inBom = sexpr.parse_bool(item)
             if item[0] == 'on_board': object.onBoard = sexpr.parse_bool(item)
             if item[0] == 'power': object.isPower = True
@@ -465,10 +462,10 @@ class Symbol():
             obtext = 'yes' if self.onBoard else 'no'
         onboard = f' (on_board {obtext})' if self.onBoard is not None else ''
         power = f' (power)' if self.isPower else ''
-        pnhide = f' hide' if self.pinNamesHide else ''
+        pnhide = sexpr.maybe_to_sexpr(self.pinNamesHide, "hide")
         pnoffset = f' (offset {self.pinNamesOffset})' if self.pinNamesOffset is not None else ''
         pinnames = f' (pin_names{pnoffset}{pnhide})' if self.pinNames else ''
-        pinnumbers = f' (pin_numbers hide)' if self.hidePinNumbers else ''
+        pinnumbers = ' (pin_numbers ( hide yes) )' if self.hidePinNumbers else ''
         extends = f' (extends "{dequote(self.extends)}")' if self.extends is not None else ''
         if self.excludeFromSim is not None:
             exclude_sim = ' (exclude_from_sim yes)' if self.excludeFromSim else ' (exclude_from_sim no)'

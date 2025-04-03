@@ -1077,7 +1077,7 @@ class Generated:
         # create members list
         members = f"{endline}(members"
         for member in self.members:
-            members += f"{endline}{indents}{dequote(member)}"
+            members += f'{endline}{indents}"{member}"'
         members += f"{endline})"
 
         expression = f"{indents}(generated"

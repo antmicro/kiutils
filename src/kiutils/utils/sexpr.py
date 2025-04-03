@@ -66,8 +66,8 @@ def val_to_str(val: Any) -> str:
         return ret
     if isinstance(val, float):
         return f"{round(val,6):.6f}".rstrip("0").rstrip(".")
-    if isinstance(val, int):
-        return f"{val}"
+    if isinstance(val, int) or isinstance(val, Rstr) or isinstance(val, bytes):
+        return str(val)
     if isinstance(val, str):
         val = val.replace('"', '\\"')
         return f'"{val}"'
@@ -92,3 +92,7 @@ def maybe_to_sexpr(val: Any, name: str = "", indent=1, newline=False) -> str:
     else:
         endline = "\n" if newline else ""
         return f"{indents}({name} {v}){endline}"
+
+class Rstr(str):
+    """Bare wrapper around `str` to enable maybe_to_sexpr serialization without quotes."""
+    pass

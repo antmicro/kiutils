@@ -22,6 +22,7 @@ from typing import Optional, List, Dict
 from kiutils.items.common import Fill, Position, ColorRGBA, ProjectInstance, Stroke, Effects, Property
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
+from kiutils.utils.sexpr import Rstr
 
 @dataclass
 class Junction():
@@ -784,7 +785,7 @@ class HierarchicalLabel():
     text: str = ""
     """The ``text`` token defines the text in the label"""
 
-    shape: str = "input"
+    shape: Rstr = Rstr("input")
     """The ``shape`` token defines the way the global label is drawn. Possible values are:
     ``input``, ``output``, ``bidirectional``, ``tri_state``, ``passive``."""
 
@@ -796,7 +797,7 @@ class HierarchicalLabel():
 
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
-    
+
     fieldsAutoPlaced: Optional[bool] = None
     """The ``fields_autoplaced`` is a flag that indicates that any PROPERTIES associated
     with the global label have been place automatically"""
@@ -826,7 +827,7 @@ class HierarchicalLabel():
         for item in exp[2:]:
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'effects': object.effects = Effects().from_sexpr(item)
-            if item[0] == 'shape': object.shape = item[1]
+            if item[0] == 'shape': object.shape = Rstr(item[1])
             if item[0] == 'uuid': object.uuid = item[1]
             if item[0] == 'fields_autoplaced': object.fieldsAutoPlaced = sexpr.parse_bool(item)
         return object
@@ -841,19 +842,20 @@ class HierarchicalLabel():
         Returns:
             - str: S-Expression of this object
         """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
+        expression = sexpr.maybe_to_sexpr(
+            [
+                self.text,
+                (self.shape, "shape"),
+                self.position,
+                (self.fieldsAutoPlaced, "fields_autoplaced"),
+                self.effects,
+                (self.uuid, "uuid"),
+            ],
+            "hierarchical_label",
+            indent=indent,
+            newline=newline,
+        )
 
-        posA = f' {self.position.angle}' if self.position.angle is not None else ''
-        fieldsAutoPlaced = ''
-        if fieldsAutoPlaced is not None:
-            fieldsAutoPlaced = ' (fields_autoplaced yes)' if self.fieldsAutoPlaced else ' (fields_autoplaced no)'
-
-        expression =  f'{indents}(hierarchical_label "{dequote(self.text)}" (shape {self.shape}) (at {self.position.X} {self.position.Y}{posA}){fieldsAutoPlaced}\n'
-        expression += self.effects.to_sexpr(indent+2)
-        if self.uuid is not None:
-            expression += f'{indents}  (uuid "{self.uuid}")\n'
-        expression += f'{indents}){endline}'
         return expression
 
 @dataclass
@@ -1298,9 +1300,9 @@ class HierarchicalPin():
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
 
         expression =  f'{indents}(pin "{dequote(self.name)}" {self.connectionType} (at {self.position.X} {self.position.Y}{posA})\n'
-        expression += self.effects.to_sexpr(indent+2)
         if self.uuid is not None:
             expression += f'{indents}  (uuid "{self.uuid}")\n'
+        expression += self.effects.to_sexpr(indent+2)
         expression += f'{indents}){endline}'
         return expression
 
@@ -1916,7 +1918,7 @@ class Circle():
             expression += f'{indents}  (uuid "{self.uuid}")\n'
         expression += f'{indents}){endline}'
         return expression
-    
+
 @dataclass
 class NetclassFlag():
     """The ``netclass_flag`` token defines a netclass flag in a schematic.
