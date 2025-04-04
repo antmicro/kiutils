@@ -680,6 +680,12 @@ class Pad():
         return expression
 
 @dataclass
+class ComponentClass(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "class"
+    positional_args : ClassVar[List[str]] = ["text"]
+    text: str = ""
+
+@dataclass
 class Footprint():
     """The ``footprint`` token defines a footprint.
 
@@ -854,6 +860,9 @@ class Footprint():
     """The ``filePath`` token defines the path-like string to the library file. Automatically set when
     ``self.from_file()`` is used. Allows the use of ``self.to_file()`` without parameters."""
 
+    componentClass: List[ComponentClass] = field(default_factory=list)
+    """Component classes assigned to associated symbol"""
+
     sheetname: Optional[str] = None
     """Indicates in which schematic sheet was linked symbol added"""
 
@@ -931,6 +940,9 @@ class Footprint():
             if item[0] == 'group': object.groups.append(Group.from_sexpr(item))
             if item[0] == 'sheetname': object.sheetname = item[1]
             if item[0] == 'sheetfile': object.sheetfile = item[1]
+            if item[0] == 'component_classes':
+                for i in item[1:]:
+                    object.componentClass.append(ComponentClass.from_sexpr(i))
             if item[0] == 'private_layers':
                 for layer in item[1:]:
                     object.privateLayers.append(layer)
@@ -1084,8 +1096,11 @@ class Footprint():
             for item in self.privateLayers:
                 expression += f' "{dequote(item)}"'
             expression += f')\n'   
-        for item in self.properties:
-            expression += item.to_sexpr(indent=indent+2)
+
+        expression += sexpr.maybe_to_sexpr([p for p in self.properties if p.key != "ki_fp_filters"], indent=indent+2)
+        expression += sexpr.maybe_to_sexpr(self.componentClass, "component_classes", indent=indent+2)
+        expression += sexpr.maybe_to_sexpr([p for p in self.properties if p.key == "ki_fp_filters"], indent=indent+2)
+
         if self.path is not None:
             expression += f'{indents}  (path "{dequote(self.path)}")\n'
         if self.sheetname is not None:
