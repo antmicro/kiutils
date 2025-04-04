@@ -82,10 +82,11 @@ def maybe_to_sexpr(val: Any, name: str = "", indent=1, newline=False) -> str:
 
     if isinstance(val, tuple):
         v = maybe_to_sexpr(val[0], val[1])
-        if v == "":
-            return ""
     else: 
         v = val_to_str(val)
+
+    if v == "":
+        return ""
 
     indents = " " * indent
     if name == "":

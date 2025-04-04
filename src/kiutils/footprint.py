@@ -909,7 +909,7 @@ class Footprint():
             if item[0] == 'autoplace_cost180': object.autoplaceCost180 = item[1]
             if item[0] == 'solder_mask_margin': object.solderMaskMargin = item[1]
             if item[0] == 'solder_paste_margin': object.solderPasteMargin = item[1]
-            if item[0] == 'solder_paste_ratio': object.solderPasteRatio = item[1]
+            if item[0] == 'solder_paste_margin_ratio': object.solderPasteRatio = item[1]
             if item[0] == 'clearance': object.clearance = item[1]
             if item[0] == 'zone_connect': object.zoneConnect = item[1]
             if item[0] == 'thermal_width': object.thermalWidth = item[1]
@@ -1079,24 +1079,6 @@ class Footprint():
         if self.tags is not None:
             expression += f'{indents}  (tags "{dequote(self.tags)}")\n'
 
-        # Additional parameters used in board
-        if self.autoplaceCost90 is not None:
-            expression += f'{indents}  (autoplace_cost90 {self.autoplaceCost90})\n'
-        if self.autoplaceCost180 is not None:
-            expression += f'{indents}  (autoplace_cost180 {self.autoplaceCost180})\n'
-        if self.solderMaskMargin is not None:
-            expression += f'{indents}  (solder_mask_margin {self.solderMaskMargin})\n'
-        if self.solderPasteMargin is not None:
-            expression += f'{indents}  (solder_paste_margin {self.solderPasteMargin})\n'
-        if self.clearance is not None:
-            expression += f'{indents}  (clearance {self.clearance})\n'
-        if self.zoneConnect is not None:
-            expression += f'{indents}  (zone_connect {self.zoneConnect})\n'
-        if self.thermalWidth is not None:
-            expression += f'{indents}  (thermal_width {self.thermalWidth})\n'
-        if self.thermalGap is not None:
-            expression += f'{indents}  (thermal_gap {self.thermalGap})\n'
-
         if self.privateLayers:
             expression += f'{indents}  (private_layers'
             for item in self.privateLayers:
@@ -1110,8 +1092,26 @@ class Footprint():
             expression += f'{indents}  (sheetname "{self.sheetname}")\n'
         if self.sheetfile is not None:
             expression += f'{indents}  (sheetfile "{self.sheetfile}")\n'
+
+        # Additional parameters used in board
+        if self.autoplaceCost90 is not None:
+            expression += f'{indents}  (autoplace_cost90 {self.autoplaceCost90})\n'
+        if self.autoplaceCost180 is not None:
+            expression += f'{indents}  (autoplace_cost180 {self.autoplaceCost180})\n'
+        if self.solderMaskMargin is not None:
+            expression += f'{indents}  (solder_mask_margin {self.solderMaskMargin})\n'
+        if self.solderPasteMargin is not None:
+            expression += f'{indents}  (solder_paste_margin {self.solderPasteMargin})\n'
         if self.solderPasteRatio is not None:
-            expression += f'{indents}  (solder_paste_ratio {self.solderPasteRatio})\n'
+            expression += f'{indents}  (solder_paste_margin_ratio {self.solderPasteRatio})\n'
+        if self.clearance is not None:
+            expression += f'{indents}  (clearance {self.clearance})\n'
+        if self.zoneConnect is not None:
+            expression += f'{indents}  (zone_connect {self.zoneConnect})\n'
+        if self.thermalWidth is not None:
+            expression += f'{indents}  (thermal_width {self.thermalWidth})\n'
+        if self.thermalGap is not None:
+            expression += f'{indents}  (thermal_gap {self.thermalGap})\n'
         if self.attributes is not None:
             # Note: If the attribute object has only standard values in it, it will return an
             #       empty string. Therefore, it should create its own newline and indentations only

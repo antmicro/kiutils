@@ -16,11 +16,12 @@ Documentation taken from:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, ClassVar
 
 from kiutils.items.common import Position
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
+from kiutils.utils.sexpr import SexprAuto
 
 @dataclass
 class GeneralSettings():
@@ -798,11 +799,14 @@ class Segment():
     width: float = 0.1
     """The ``width`` token defines the line width"""
 
-    layer: str = "F.Cu"
+    layers: List[str] = field(default_factory=lambda: ["F.Cu"])
     """The ``layer`` token defines the canonical layer the track segment resides on"""
 
     locked: bool = False
     """The ``locked`` token defines if the line cannot be edited"""
+
+    solder_mask_margin: Optional[float]=None
+    """Solder mask opening width of track"""
 
     net: int = 0
     """The ``net`` token defines by the net ordinal number which net in the net
@@ -810,6 +814,16 @@ class Segment():
     
     uuid: Optional[str] =""
     """The optional ``uuid`` defines the universally unique identifier"""
+
+    @property
+    def layer(self)-> str:
+        return self.layers[0] if len(self.layers) else ""
+    @layer.setter
+    def layer(self, val: str)-> None:
+        if len(self.layers):
+            self.layers[0]=val 
+        else:
+            self.layers.append(val)
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Segment:
@@ -838,6 +852,8 @@ class Segment():
             if item[0] == 'end': object.end = Position().from_sexpr(item)
             if item[0] == 'width': object.width = item[1]
             if item[0] == 'layer': object.layer = item[1]
+            if item[0] == 'layers': object.layers = item[1:]
+            if item[0] == 'solder_mask_margin': object.solder_mask_margin = item[1]
             if item[0] == 'net': object.net = item[1]
             if item[0] == 'uuid': object.uuid = item[1]
         return object
@@ -855,8 +871,9 @@ class Segment():
         indents = ' '*indent
         endline = '\n' if newline else ''
         locked = '( locked yes )' if self.locked else ''
+        layer_key = "layer" if len(self.layers) == 1 else "layers"
 
-        return f'{indents}(segment (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (width {self.width}){locked} (layer "{dequote(self.layer)}") (net {self.net}) (uuid "{dequote(self.uuid)}")){endline}'
+        return f'{indents}(segment (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (width {self.width}){locked}{sexpr.maybe_to_sexpr([(self.layers, layer_key), (self.solder_mask_margin, "solder_mask_margin")])} (net {self.net}) (uuid "{dequote(self.uuid)}")){endline}'
 
 
 @dataclass
@@ -1118,100 +1135,37 @@ class Generated:
 
 
 @dataclass
-class Teardrops:
+class Teardrops(SexprAuto):
     """The ``tearadrops`` object defines via/pad teardrop connection"""
-
-    bestLengthRatio: Optional[float] = None
+    sexpr_prefix: ClassVar[str]= "teardrops"
+    best_length_ratio: Optional[float] = None
     """Defines length of teardrop in relation to pad/via width"""
 
-    maxLength: Optional[float] = None
+    max_length: Optional[float] = None
     """Defines maximum length of teardrop"""
 
-    bestWidthRatio: Optional[float] = None
+    best_width_ratio: Optional[float] = None
     """Defines width (on wider side) of teardrop in relation to pad/via width"""
 
-    maxWidth: Optional[float] = None
+    max_width: Optional[float] = None
     """Defines maximum width of teardrop"""
 
-    curvePoints: Optional[int] = None
+    curved_edges: Optional[bool] = None
+
+    curve_points: Optional[int] = None
     """Defines aproximation quality of curved teardrop"""
 
-    filterRatio: Optional[float] = None
+    filter_ratio: Optional[float] = None
     """Skip teardrop if ratio of pad/via width to track width is larger than ``filterRatio``"""
 
     enabled: Optional[bool] = None
     """Controls if teardrop should be generated for pad/via"""
 
-    allowTwoSegments: Optional[bool] = None
+    allow_two_segments: Optional[bool] = None
     """Can teardrop span over two track segments"""
 
-    preferZoneConnections: Optional[bool] = None
+    prefer_zone_connections: Optional[bool] = None
     """Controls zone connection should use teardrops"""
-
-    @classmethod
-    def from_sexpr(cls, exp: list) -> Teardrops:
-        """Convert the given S-Expresstion into a Teardrops object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(teardrops ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not teardrops
-
-        Returns:
-            - Via: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != "teardrops":
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-        for item in exp:
-            if item[0] == "best_length_ratio":
-                object.bestLengthRatio = item[1]
-            if item[0] == "max_length":
-                object.maxLength = item[1]
-            if item[0] == "best_width_ratio":
-                object.bestWidthRatio = item[1]
-            if item[0] == "max_width":
-                object.maxWidth = item[1]
-            if item[0] == "curve_points":
-                object.curvePoints = item[1]
-            if item[0] == "filter_ratio":
-                object.filterRatio = item[1]
-            if item[0] == "enabled":
-                object.enabled = sexpr.parse_bool(item)
-            if item[0] == "allow_two_segments":
-                object.allowTwoSegments = sexpr.parse_bool(item)
-            if item[0] == "prefer_zone_connections":
-                object.preferZoneConnections = sexpr.parse_bool(item)
-
-        return object
-
-    def to_sexpr(self) -> str:
-        """Generate the S-Expression representing this object
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        return sexpr.maybe_to_sexpr(
-            [
-                (self.bestLengthRatio, "best_length_ratio"),
-                (self.maxLength, "max_length"),
-                (self.bestWidthRatio, "best_width_ratio"),
-                (self.maxWidth, "max_width"),
-                (self.curvePoints, "curve_points"),
-                (self.filterRatio, "filter_ratio"),
-                (self.enabled, "enabled"),
-                (self.allowTwoSegments, "allow_two_segments"),
-                (self.preferZoneConnections, "prefer_zone_connections"),
-            ],
-            "teardrops",
-        )
-
 
 @dataclass
 class Via():

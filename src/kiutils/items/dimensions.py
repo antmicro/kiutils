@@ -17,12 +17,13 @@ Documentation taken from:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, ClassVar
 
 from kiutils.items.common import Position
 from kiutils.items.gritems import GrText
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
+from kiutils.utils.sexpr import SexprAuto, Rstr
 
 @dataclass
 class DimensionFormat():
@@ -119,31 +120,33 @@ class DimensionFormat():
         return expression
 
 @dataclass
-class DimensionStyle():
+class DimensionStyle(SexprAuto):
     """The ``style`` token defines the style of a dimension
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_dimension_style
     """
-
+    sexpr_prefix: ClassVar[str] = "style"
     thickness: float = 0.0
     """The ``thickness`` token defines the line thickness of the dimension"""
 
-    arrowLength: float = 0.0
+    arrow_length: float = 0.0
     """The ``arrowLength`` token defines the length of the dimension arrows"""
 
-    textPositionMode: int = 0
+    text_position_mode: int = 0
     """The ``textPositionMode`` token defines the position mode of the dimension text. Valid position
     modes are as follows:
     - 0: Text is outside the dimension line
     - 1: Text is in line with the dimension line
     - 2: Text has been manually placed by the user"""
 
-    extensionHeight: Optional[float] = None
+    arrow_direction: Optional[Rstr]=None
+
+    extension_height: Optional[float] = None
     """The optional ``extensionHeight`` token defines the length of the extension lines past the
     dimension crossbar"""
 
-    textFrame: Optional[int] = None
+    text_frame: Optional[int] = None
     """The optional ``textFrame`` token defines the style of the frame around the dimension text. This
     only applies to leader dimensions. Valid text frames are as follows:
     - 0: No text frame
@@ -151,68 +154,14 @@ class DimensionStyle():
     - 2: Circle
     - 3:Rounded rectangle"""
 
-    extensionOffset: Optional[float] = None
+    extension_offset: Optional[float] = None
     """The optional ``extensionOffset`` token defines the distance from feature points to extension
     line start"""
 
-    keepTextAligned: bool = False
+    keep_text_aligned: Optional[bool] = None
     """The ``keepTextAligned`` token indicates that the dimension text should be kept in line with the
     dimension crossbar. When false, the dimension text is shown horizontally regardless of the
     orientation of the dimension."""
-
-    @classmethod
-    def from_sexpr(cls, exp: list) -> DimensionStyle:
-        """Convert the given S-Expresstion into a DimensionStyle object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(style ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not style
-
-        Returns:
-            - DimensionStyle: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != 'style':
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-        for item in exp[1:]:
-            if type(item) != type([]):
-                if item == 'keep_text_aligned': object.keepTextAligned = True
-                continue
-            if item[0] == 'thickness': object.thickness = item[1]
-            if item[0] == 'arrow_length': object.arrowLength = item[1]
-            if item[0] == 'text_position_mode': object.textPositionMode = item[1]
-            if item[0] == 'extension_height': object.extensionHeight = item[1]
-            if item[0] == 'text_frame': object.textFrame = item[1]
-            if item[0] == 'extension_offset': object.extensionOffset = item[1]
-        return object
-
-    def to_sexpr(self, indent: int = 4, newline: bool = True) -> str:
-        """Generate the S-Expression representing this object
-
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 4.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-
-        extension_height = f' (extension_height {self.extensionHeight})' if self.extensionHeight is not None else ''
-        text_frame = f' (text_frame {self.textFrame})' if self.textFrame is not None else ''
-        extension_offset = f' (extension_offset {self.extensionOffset})' if self.extensionOffset is not None else ''
-        keep_aligned = f' keep_text_aligned' if self.keepTextAligned else ''
-
-        expression =  f'{indents}(style (thickness {self.thickness}) (arrow_length {self.arrowLength}) (text_position_mode {self.textPositionMode}){extension_height}{text_frame}{extension_offset}{keep_aligned}){endline}'
-        return expression
 
 @dataclass
 class Dimension():
@@ -222,7 +171,7 @@ class Dimension():
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_dimension
     """
 
-    locked: bool = False
+    locked: Optional[bool] = None
     """The optional ``locked`` token specifies if the dimension can be moved"""
 
     type: str = "aligned"
@@ -319,7 +268,7 @@ class Dimension():
         if len(points) == 0:
             raise Exception("Number of points must not be zero")
 
-        expression =   f'{indents}(dimension (type {self.type}) (layer "{self.layer}") (uuid "{self.uuid}")\n'
+        expression =   f'{indents}(dimension (type {self.type}){sexpr.maybe_to_sexpr(self.locked, "locked")} (layer "{self.layer}") (uuid "{self.uuid}")\n'
         expression +=  f'{indents}  (pts{points})\n'
         if self.height is not None:
             expression +=  f'{indents}  (height {self.height})\n'
