@@ -17,12 +17,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict
+from typing import Optional, List, ClassVar
 
-from kiutils.items.common import Fill, Position, ColorRGBA, ProjectInstance, Stroke, Effects, Property
+from kiutils.items.common import Fill, Position, ColorRGBA, ProjectInstance, Stroke, Effects, Property, TableBorder, TableSeparators, Coordinate2D
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
-from kiutils.utils.sexpr import Rstr
+from kiutils.utils.sexpr import Rstr, SexprAuto
 
 @dataclass
 class Junction():
@@ -2016,3 +2016,44 @@ class NetclassFlag():
             expression += property.to_sexpr(indent+2)
         expression += f'{indents}){endline}'
         return expression
+
+@dataclass
+class SchTableCell(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "table_cell"
+    positional_args: ClassVar[List[str]] = ["text"]
+    text: str = ""
+    exclude_from_sim: bool = False
+    position: Position = field(default_factory=Position)
+    size: List[float] = field(default_factory=list)
+    margins: List[float] = field(default_factory=list)
+    span: List[float] = field(default_factory=list)
+    fill: Optional[Fill] = None
+    effects: Optional[Effects] = None
+    uuid: str = ""
+
+
+@dataclass
+class SchTable(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "table"
+    column_count: int = 0
+    locked: Optional[bool]=None
+    border: TableBorder = field(default_factory=TableBorder)
+    separators: TableSeparators = field(default_factory=TableSeparators)
+    column_widths: List[float] = field(default_factory=list)
+    row_heights: List[float] = field(default_factory=list)
+    cells: List[SchTableCell] = field(default_factory=list)
+
+
+@dataclass
+class SchBezier(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "bezier"
+    pts: List[Coordinate2D] = field(default_factory=list)
+    locked: Optional[bool]=None
+    stroke: Optional[Stroke] = None
+    fill: Optional[Fill] = None
+    uuid: Optional[Rstr] = None
+
+@dataclass
+class RuleArea(SexprAuto):
+    sexpr_prefix: ClassVar[str] = "rule_area"
+    polyline: PolyLine = field(default_factory=PolyLine)

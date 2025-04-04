@@ -21,6 +21,7 @@ import re
 
 from kiutils.items.common import Effects, Position, Property, Font, EmbeddedFiles
 from kiutils.items.syitems import *
+from kiutils.items.schitems import SchBezier
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote
 from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_SCH,KIUTILS_CREATE_NEW_GENERATOR_STR,KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
@@ -116,7 +117,7 @@ class SymbolPin():
     """The optional ``numberEffects`` token define how the pin's number is displayed. This token is
     mandatory for KiCad v6 and was made optional since KiCad v7."""
 
-    hide: bool = False      # Missing in documentation
+    hide: Optional[bool] = None      # Missing in documentation
     """The 'hide' token defines if the pin should be hidden"""
 
     alternatePins: List[SymbolAlternativePin] = field(default_factory=list)
@@ -146,9 +147,7 @@ class SymbolPin():
         object.electricalType = exp[1]
         object.graphicalStyle = exp[2]
         for item in exp[3:]:
-            if type(item) != type([]):
-                if item == 'hide': object.hide = True
-                else: continue
+            if item[0] == 'hide': object.hide = sexpr.parse_bool(item)
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'length': object.length = item[1]
             if item[0] == 'name':
@@ -176,7 +175,7 @@ class SymbolPin():
         endline = '\n' if newline else ''
         newLineAdded = False
 
-        hide = ' hide' if self.hide else ''
+        hide = sexpr.maybe_to_sexpr(self.hide, "hide")
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         nameEffects = f' {self.nameEffects.to_sexpr(newline=False)}' if self.nameEffects is not None else ''
         numberEffects = f' {self.numberEffects.to_sexpr(newline=False)}' if self.numberEffects is not None else ''
@@ -410,6 +409,7 @@ class Symbol():
             if item[0] == 'rectangle': object.graphicItems.append(SyRect().from_sexpr(item))
             if item[0] == 'text': object.graphicItems.append(SyText().from_sexpr(item))
             if item[0] == 'text_box': object.graphicItems.append(SyTextBox().from_sexpr(item))
+            if item[0] == 'bezier': object.graphicItems.append(SchBezier().from_sexpr(item))
             if item[0] == 'exclude_from_sim': object.excludeFromSim = sexpr.parse_bool(item)
             if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
             if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)

@@ -19,13 +19,13 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Union
 from os import path
 
-from kiutils.items.common import Image, PageSettings, TitleBlock, EmbeddedFiles, SchTable
+from kiutils.items.common import Image, PageSettings, TitleBlock, EmbeddedFiles
 from kiutils.items.schitems import *
 from kiutils.symbol import Symbol, SchematicLibSymbol
 from kiutils.utils import sexpr
 from kiutils.misc.config import KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_VERSION_STR_SCH, KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
 
-GraphicalItem = Union[Connection, PolyLine, Arc, Circle, Rectangle, Text, TextBox, Junction, NoConnect, BusEntry, Image]
+GraphicalItem = Union[Connection, PolyLine, Arc, Circle, Rectangle, Text, TextBox, Junction, NoConnect, BusEntry, Image, SchBezier]
 
 @dataclass
 class Schematic():
@@ -73,6 +73,9 @@ class Schematic():
 
     hierarchicalLabels: List[HierarchicalLabel] = field(default_factory=list)
     """The ``herarchicalLabels`` token defines a list of hierarchical labels used in the schematic"""
+
+    ruleArea: List[RuleArea] = field(default_factory=list)
+    """The ``ruleArea`` token defines a list of rule areas defined in the schematic."""
 
     netclassFlags: List[NetclassFlag] = field(default_factory=list)
     """The ``netclassFlags`` token defines a list of netclass flags used in the schematic.
@@ -150,11 +153,13 @@ class Schematic():
             if item[0] == 'circle': object.graphicalItems.append(Circle.from_sexpr(item))
             if item[0] == 'rectangle': object.graphicalItems.append(Rectangle.from_sexpr(item))
             if item[0] == 'image': object.graphicalItems.append(Image().from_sexpr(item))
+            if item[0] == 'bezier': object.graphicalItems.append(SchBezier().from_sexpr(item))
             if item[0] == 'text': object.graphicalItems.append(Text().from_sexpr(item))
             if item[0] == 'text_box': object.graphicalItems.append(TextBox().from_sexpr(item))
             if item[0] == 'label': object.labels.append(LocalLabel().from_sexpr(item))
             if item[0] == 'global_label': object.globalLabels.append(GlobalLabel().from_sexpr(item))
             if item[0] == 'hierarchical_label': object.hierarchicalLabels.append(HierarchicalLabel().from_sexpr(item))
+            if item[0] == 'rule_area': object.ruleArea.append(RuleArea.from_sexpr(item))
             if item[0] == 'netclass_flag': object.netclassFlags.append(NetclassFlag.from_sexpr(item))
             if item[0] == 'symbol': object.schematicSymbols.append(SchematicSymbol().from_sexpr(item))
             if item[0] == 'sheet': object.sheets.append(HierarchicalSheet().from_sexpr(item))
@@ -287,6 +292,11 @@ class Schematic():
         if self.hierarchicalLabels:
             expression += '\n'
             for item in self.hierarchicalLabels:
+                expression += item.to_sexpr(indent+2)
+
+        if self.ruleArea:
+            expression += '\n'
+            for item in self.ruleArea:
                 expression += item.to_sexpr(indent+2)
 
         if self.netclassFlags:

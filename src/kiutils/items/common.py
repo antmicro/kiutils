@@ -94,6 +94,9 @@ class PositionStart(Position):
 class PositionEnd(Position):
     """Same as ``Position`` class but SerDe with `end` instead `at`."""
     sexpr_prefix: ClassVar[str] = "end"
+class Coordinate2D(Position):
+    """Same as ``Position`` class but SerDe with `xy` instead `at`."""
+    sexpr_prefix: ClassVar[str] = "xy"
 
 @dataclass
 class Coordinate():
@@ -1330,32 +1333,6 @@ class TableSeparators(SexprAuto):
 
 
 @dataclass
-class SchTableCell(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "table_cell"
-    positional_args: ClassVar[List[str]] = ["text"]
-    text: str = ""
-    exclude_from_sim: bool = False
-    position: Position = field(default_factory=Position)
-    size: List[float] = field(default_factory=list)
-    margins: List[float] = field(default_factory=list)
-    span: List[float] = field(default_factory=list)
-    fill: Optional[Fill] = None
-    effects: Optional[Effects] = None
-    uuid: str = ""
-
-
-@dataclass
-class SchTable(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "table"
-    column_count: int = 0
-    locked: Optional[bool]=None
-    border: TableBorder = field(default_factory=TableBorder)
-    separators: TableSeparators = field(default_factory=TableSeparators)
-    column_widths: List[float] = field(default_factory=list)
-    row_heights: List[float] = field(default_factory=list)
-    cells: List[SchTableCell] = field(default_factory=list)
-
-@dataclass
 class PCBTableCell(SexprAuto):
     sexpr_prefix: ClassVar[str] = "table_cell"
     positional_args: ClassVar[List[str]] = ["text"]
@@ -1381,3 +1358,4 @@ class PCBTable(SexprAuto):
     column_widths: List[float] = field(default_factory=list)
     row_heights: List[float] = field(default_factory=list)
     cells: List[PCBTableCell] = field(default_factory=list)
+
