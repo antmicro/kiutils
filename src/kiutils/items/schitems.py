@@ -19,7 +19,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional, List, ClassVar
 
-from kiutils.items.common import Fill, Position, ColorRGBA, ProjectInstance, Stroke, Effects, Property, TableBorder, TableSeparators, Coordinate2D
+from kiutils.items.common import Fill, Position, ColorRGBA, ProjectInstance, Stroke, Effects, Property, TableBorder, TableSeparators, Coordinate2D, Size
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
 from kiutils.utils.sexpr import Rstr, SexprAuto
@@ -1238,6 +1238,7 @@ class HierarchicalPin():
         https://dev-docs.kicad.org/en/file-formats/sexpr-schematic/#_hierarchical_sheet_pin_definition
     """
 
+    sexpr_prefix: ClassVar[str] = "pin"
     name: str = ""
     """	The ``name`` attribute defines the name of the sheet pin. It must have an identically named
         hierarchical label in the associated schematic file."""
@@ -1425,135 +1426,85 @@ class HierarchicalSheetProjectInstance(ProjectInstance):
         return expression
 
 @dataclass
-class HierarchicalSheet():
+class HierarchicalSheet(SexprAuto):
     """The ``sheet`` token defines a hierarchical sheet of the schematic
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-schematic/#_hierarchical_sheet_section
     """
-
-    position: Position = field(default_factory=lambda: Position())
+    sexpr_prefix: ClassVar[str]="sheet"
+    position: Position = field(default_factory=Position)
     """The ``position`` defines the X and Y coordinates and angle of rotation of the sheet in the schematic"""
 
-    width: float = 0
-    """The ``width`` token defines the width of the sheet"""
+    size: Size = field(default_factory=Size)
+    """Size of sheet in the schematic"""
 
-    height: float = 0
-    """The ``height`` token defines the height of the sheet"""
+    exclude_from_sim: Optional[bool] = None
+    """All components in this sheet are/are not  excluded from simulation"""
 
-    fieldsAutoPlaced: Optional[bool] = None
+    in_bom: Optional[bool] = None
+    """All components in this sheet are included/not included in BOM"""
+
+    on_board: Optional[bool] = None
+    """All components in this sheet are included/excluded from PCB"""
+
+    dnp: Optional[bool] = None
+    """All components in this sheet are/are not DNP"""
+
+    fields_autoplaced: Optional[bool] = None
     """The ``fields_autoplaced`` is a flag that indicates that any PROPERTIES associated
        with the global label have been place automatically"""
 
     stroke: Stroke = field(default_factory=lambda: Stroke())
     """The ``stroke`` defines how the sheet outline is drawn"""
 
-    fill: ColorRGBA = field(default_factory=lambda: ColorRGBA())
+    fill: Optional[Fill] = None
     """The fill defines the color how the sheet is filled"""
 
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
 
-    sheetName: Property = field(default_factory=lambda: Property(key="Sheet name"))
-    """The ``sheetName`` is a property that defines the name of the sheet. The property's
-       key should therefore be set to `Sheet name`"""
+    properties: List[Property] = field(default_factory=list, metadata={"flatten":True})
+    """The ``properties`` section defines a list of properties defined for the hierarchical sheet."""
 
-    fileName: Property = field(default_factory=lambda: Property(key="Sheet file"))
-    """The ``fileName`` is a property that defines the file name of the sheet. The property's
-       key should therefore be set to `Sheet file`"""
-
-    properties: List[Property] = field(default_factory=list)
-    """The ``properties`` section defines a list of properties defined for the hierarchical sheet.
-       This holds all properties except that held by ``sheetName`` and ``fileName`` members."""
-
-    pins: List[HierarchicalPin] = field(default_factory=list)
+    pins: List[HierarchicalPin] = field(default_factory=list, metadata={"flatten":True})
     """The ``pins`` section is a list of hierarchical pins that map a hierarchical label defined in
        the associated schematic file"""
-    
+
     instances: List[HierarchicalSheetProjectInstance] = field(default_factory=list)
-    """The ``instances`` token defines a list of hierachical sheet instances grouped by project. 
+    """The ``instances`` token defines a list of hierarchical sheet instances grouped by project. 
     Every hierarchical sheet will have a least one instance.
     
     Available since KiCad v7."""
 
-    @classmethod
-    def from_sexpr(cls, exp: list) -> HierarchicalSheet:
-        """Convert the given S-Expresstion into a HierarchicalSheet object
+    @property
+    def width(self) -> float:
+        """The ``width`` token defines the width of the sheet"""
+        return self.size.X
 
-        Args:
-            - exp (list): Part of parsed S-Expression ``(sheet ...)``
+    @width.setter
+    def width(self, val: float):
+        self.size.X = val
 
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not sheet
+    @property
+    def height(self) -> float:
+        """The ``height`` token defines the height of the sheet"""
+        return self.size.Y
 
-        Returns:
-            - HierarchicalSheet: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
+    @height.setter
+    def height(self, val: float):
+        self.size.Y = val
 
-        if exp[0] != 'sheet':
-            raise Exception("Expression does not have the correct type")
+    def getProperty(self, key: str) -> Optional[Property]:
+        """Get Property with specified key"""
+        return next((prop for prop in self.properties if prop.key == key), None)
 
-        object = cls()
-        for item in exp[1:]:
-            if item[0] == 'fields_autoplaced': object.fieldsAutoPlaced = sexpr.parse_bool(item)
-            if item[0] == 'at': object.position = Position().from_sexpr(item)
-            if item[0] == 'stroke': object.stroke = Stroke().from_sexpr(item)
-            if item[0] == 'size':
-                object.width = item[1]
-                object.height = item[2]
-            if item[0] == 'fill':
-                object.fill = ColorRGBA().from_sexpr(item[1])
-                object.fill.precision = 4
-            if item[0] == 'uuid': object.uuid = item[1]
-            if item[0] == 'property':
-                p = Property().from_sexpr(item)
-                if item[1] == 'Sheet name' or item[1] == 'Sheetname': object.sheetName = p
-                elif item[1] == 'Sheet file' or item[1] == 'Sheetfile': object.fileName = p
-                else: object.properties.append(p)
-            if item[0] == 'pin': object.pins.append(HierarchicalPin().from_sexpr(item))
-            if item[0] == 'instances':
-                for instance in item[1:]:
-                    object.instances.append(HierarchicalSheetProjectInstance.from_sexpr(instance))
-        return object
+    def setProperty(self, key: str, val: Property):
+        """Set Property with specified key"""
+        for prop in self.properties:
+            if prop.key == key:
+                prop = val
 
-    def to_sexpr(self, indent=2, newline=True) -> str:
-        """Generate the S-Expression representing this object
-
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 2.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-
-        fa = ''
-        if self.fieldsAutoPlaced is not None:
-            fa = ' (fields_autoplaced yes)' if self.fieldsAutoPlaced else ' (fields_autoplaced no)'
-
-        expression =  f'{indents}(sheet (at {self.position.X} {self.position.Y}) (size {self.width} {self.height}){fa}\n'
-        expression += self.stroke.to_sexpr(indent+2)
-        expression += f'{indents}  (fill {self.fill.to_sexpr()})\n'
-        if self.uuid is not None:
-            expression += f'{indents}  (uuid "{self.uuid}")\n'
-        expression += self.sheetName.to_sexpr(indent+2)
-        expression += self.fileName.to_sexpr(indent+2)
-        for p in self.properties:
-            expression += p.to_sexpr(indent+2)
-        for pin in self.pins:
-            expression += pin.to_sexpr(indent+2)
-        if len(self.instances) != 0:
-            expression += f'{indents}  (instances\n'
-            for instance in self.instances:
-                expression += instance.to_sexpr(indent+4)
-            expression += f'{indents}  )\n'
-        expression += f'{indents}){endline}'
-        return expression
 
 @dataclass
 class HierarchicalSheetInstance():

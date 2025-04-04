@@ -4,7 +4,7 @@
 
 import re
 from typing import List, Any, Union, Tuple, ClassVar, Self, Optional, get_args, get_origin, get_type_hints
-from dataclasses import fields
+from dataclasses import fields, Field
 
 dbg = False
 
@@ -145,7 +145,7 @@ class SexprAuto:
 
         obj = cls()
         positional_idx = 0
-        types=get_type_hints(cls)
+        types = get_type_hints(cls)
         for item in exp[1:]:
             if not isinstance(item, list):
                 fname = obj.positional_args[positional_idx]
@@ -154,19 +154,29 @@ class SexprAuto:
                 positional_idx += 1
                 continue
             for f in fields(obj):
-                fval=getattr(obj, f.name)
+                fval = getattr(obj, f.name)
+                ftype=types[f.name]
                 if (
-                    item[0] == f.name
-                    or getattr(fval, "sexpr_prefix", None) == item[0]
+                    f.metadata.get("flatten", False)
+                    and get_origin(ftype) == list
+                    and getattr(get_args(ftype)[0], "sexpr_prefix", None) == item[0]
                 ):
-                    setattr(obj, f.name, from_sexpr(types[f.name], item))
+                    fval.append(from_sexpr(get_args(ftype)[0], item))
+                    setattr(obj, f.name, fval)
+                    break
+                elif (
+                    item[0] == f.name or getattr(fval, "sexpr_prefix", None) == item[0]
+                ):
+                    setattr(obj, f.name, from_sexpr(ftype, item))
+                    break
+
         return obj
 
     def _sexpr_inter_tuple(
-        self, name: str, no_name: bool
+        self, f: Field, no_name: bool
     ) -> Union[Tuple[Any, str], Any]:
-        val = getattr(self, name)
-        return val if hasattr(val, "to_sexpr") or no_name else (val, name)
+        val = getattr(self, f.name)
+        return val if hasattr(val, "to_sexpr") or no_name or f.metadata.get("flatten", False) else (val, f.name)
 
     def to_sexpr(self, indent=0, newline=False) -> str:
         """Generate the S-Expression representing this object
@@ -180,7 +190,7 @@ class SexprAuto:
         """
         return maybe_to_sexpr(
             [
-                self._sexpr_inter_tuple(f.name, f.name in self.positional_args)
+                self._sexpr_inter_tuple(f, f.name in self.positional_args)
                 for f in fields(self)
             ],
             name=self.sexpr_prefix,
