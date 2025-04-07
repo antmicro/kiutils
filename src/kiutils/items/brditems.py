@@ -16,12 +16,12 @@ Documentation taken from:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, List, ClassVar
+from typing import Optional, List, ClassVar, Dict
 
 from kiutils.items.common import Position
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
-from kiutils.utils.sexpr import SexprAuto
+from kiutils.utils.sexpr import SexprAuto, Rstr
 
 @dataclass
 class GeneralSettings():
@@ -1168,19 +1168,18 @@ class Teardrops(SexprAuto):
     """Controls zone connection should use teardrops"""
 
 @dataclass
-class Via():
+class Via(SexprAuto):
     """The ``via`` token defines a track via in a KiCad board
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/#_track_via
     """
-
-    type: Optional[str] = None
+    sexpr_prefix: ClassVar[str]="via"
+    positional_args: ClassVar[List[str]] = ["type"]
+    type: Rstr = Rstr("")
     """The optional ``type`` attribute specifies the via type. Valid via types are ``blind`` and
     ``micro``. If no type is defined, the via is a through hole type"""
 
-    locked: bool = False
-    """The ``locked`` token defines if the line cannot be edited"""
 
     position: Position = field(default_factory=lambda: Position())
     """The ``position`` token define the coordinates of the center of the via"""
@@ -1195,120 +1194,35 @@ class Via():
     """The ``layers`` token define the canonical layer set the via connects as a list
     of strings"""
 
-    removeUnusedLayers: Optional[bool] = None
+    locked: Optional[bool] = None
+    """The ``locked`` token defines if the line cannot be edited"""
+    remove_unused_layers: Optional[bool] = None
     """The ``removeUnusedLayers`` token is undocumented (as of 20.02.2022)"""
 
-    keepEndLayers: Optional[bool] = None
+    keep_end_layers: Optional[bool] = None
     """The ``keepEndLayers`` token is undocumented (as of 20.02.2022)"""
 
     free: Optional[bool] = None
     """The ``free`` token indicates that the via is free to be moved outside it's assigned net"""
 
-    net: int = 0
-    """The ``net`` token defines by net ordinal number which net in the net section that
-    the via is part of"""
+    zone_layer_connections: Optional[List[str]] = field(default=None, metadata={"force_empty": True})
+    """Indicates which cooper layers are connected"""
+
+    padstack: Optional[PadStack]= None
+    """Defines Via pads on different layers"""
 
     teardrops: Optional[Teardrops] = None
     """Defines teardrop connections of via"""
 
-    uuid: Optional[str] =""
+    tenting: Optional[Rstr] = None
+    """Via tenting option"""
+
+    net: Optional[int] = 0
+    """The ``net`` token defines by net ordinal number which net in the net section that
+    the via is part of"""
+
+    uuid: Optional[str] = ""
     """The optional ``uuid`` defines the universally unique identifier"""
-
-    zoneLayerConnections: Optional[List[str]] = None
-    """Indicates which cooper layers are connected"""
-
-    @classmethod
-    def from_sexpr(cls, exp: list) -> Via:
-        """Convert the given S-Expresstion into a Via object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(via ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not via
-
-        Returns:
-            - Via: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != 'via':
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-        for item in exp:
-            if type(item) != type([]):
-                if item == 'micro' or item == 'blind': object.type = item
-                continue
-            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
-            if item[0] == 'at': object.position = Position().from_sexpr(item)
-            if item[0] == 'size': object.size = item[1]
-            if item[0] == 'drill': object.drill = item[1]
-            if item[0] == 'layers':
-                for layer in item[1:]:
-                    object.layers.append(layer)
-            if item[0] == 'remove_unused_layers': object.removeUnusedLayers = sexpr.parse_bool(item)
-            if item[0] == 'keep_end_layers': object.keepEndLayers = sexpr.parse_bool(item)
-            if item[0] == 'free': object.free = sexpr.parse_bool(item)
-            if item[0] == 'net': object.net = item[1]
-            if item[0] == 'teardrops': object.teardrops = Teardrops().from_sexpr(item)
-            if item[0] == 'uuid': object.uuid = item[1]
-            if item[0] == 'zone_layer_connections':
-                object.zoneLayerConnections = []
-                for layer in item[1:]:
-                    object.zoneLayerConnections.append(layer)
-
-        return object
-
-    def to_sexpr(self, indent=2, newline=True) -> str:
-        """Generate the S-Expression representing this object
-
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 2.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-
-        type = f' {self.type}' if self.type is not None else ''
-        locked = f'( locked yes )' if self.locked else ''
-
-        layers = ''
-        for layer in self.layers:
-            layers += f' "{dequote(layer)}"'
-
-
-        remove_unused_layers = ""
-        keep_end_layers = ""
-        zone_layer_connections = ''
-        free = ""
-        if self.removeUnusedLayers is not None:
-            remove_unused_layers = (
-                f" (remove_unused_layers yes)"
-                if self.removeUnusedLayers
-                else " (remove_unused_layers no)"
-            )
-        if self.keepEndLayers is not None:
-            keep_end_layers = (
-                f" (keep_end_layers yes)"
-                if self.keepEndLayers
-                else " (keep_end_layers no)"
-            )
-        if self.zoneLayerConnections is not None:
-            zone_layer_connections += ' (zone_layer_connections'
-            for layer in self.zoneLayerConnections:
-                zone_layer_connections += f' "{dequote(layer)}"'
-            zone_layer_connections += ')'
-        if self.free is not None:
-            free = f" (free yes)" if self.free else " (free no)"
-        uuid = f' (uuid "{dequote(self.uuid)}")' if self.uuid is not None else ''
-
-        return f'{indents}(via{type} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){locked}{remove_unused_layers}{keep_end_layers}{free}{zone_layer_connections}{sexpr.maybe_to_sexpr(self.teardrops)}(net {self.net}){uuid}){endline}'
 
 @dataclass
 class Arc():
@@ -1468,3 +1382,16 @@ class Target():
         endline = '\n' if newline else ''
 
         return f'{indents}(target {self.type} (at {self.position.X} {self.position.Y}) (size {self.size}) (width {self.width}) (layer "{self.layer}") (uuid "{dequote(self.uuid)}")){endline}'
+
+@dataclass
+class PadStackLayer(SexprAuto):
+    sexpr_prefix: ClassVar[str]= "layer"
+    positional_args: ClassVar[List[str]] = ["key"]
+    key: str=""
+    size: List[float]= field(default_factory=list)
+
+@dataclass
+class PadStack(SexprAuto):
+    sexpr_prefix: ClassVar[str]= "padstack"
+    mode: Optional[Rstr]=None
+    layers: Dict[str, PadStackLayer] = field(default_factory=dict, metadata={"flatten":True})
