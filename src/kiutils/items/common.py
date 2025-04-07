@@ -106,6 +106,15 @@ class PositionEnd(Position):
 
     sexpr_prefix: ClassVar[str] = "end"
 
+class PositionMid(Position):
+    """Same as ``Position`` class but SerDe with `mid` instead `at`."""
+
+    sexpr_prefix: ClassVar[str] = "mid"
+class PositionCenter(Position):
+    """Same as ``Position`` class but SerDe with `center` instead `at`."""
+
+    sexpr_prefix: ClassVar[str] = "center"
+
 
 class Coordinate2D(Position):
     """Same as ``Position`` class but SerDe with `xy` instead `at`."""

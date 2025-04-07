@@ -307,10 +307,7 @@ class Board():
         if len(self.graphicItems) > 0:
             addNewLine = True
             for item in self.graphicItems:
-                if isinstance(item, GrPoly):
-                    expression += item.to_sexpr(indent+2, pts_newline=True)
-                else:
-                    expression += item.to_sexpr(indent+2)
+                expression += item.to_sexpr(indent+2)
 
         if self.tables:
             expression += '\n'
