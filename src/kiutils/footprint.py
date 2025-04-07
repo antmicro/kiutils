@@ -24,7 +24,7 @@ from kiutils.items.zones import Zone
 from kiutils.items.common import Image, Position, Coordinate, Net, Group, Font, EmbeddedFiles, PCBTable
 from kiutils.items.fpitems import *
 from kiutils.items.gritems import *
-from kiutils.items.brditems import Teardrops
+from kiutils.items.brditems import Teardrops, PadStack
 from kiutils.items.dimensions import *
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote
@@ -435,6 +435,9 @@ class Pad():
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
 
+    padstack: Optional[PadStack]= None
+    """Defines pad pattern on different layers"""
+
     pinFunction: Optional[str] = None
     """The optional ``pinFunction`` token attribute defines the associated schematic symbol pin name"""
 
@@ -563,6 +566,7 @@ class Pad():
                 for layer in item[1:]:
                     object.zoneLayerConnections.append(layer)
             if item[0] == 'options': object.customPadOptions = PadOptions().from_sexpr(item)
+            if item[0] == 'padstack': object.padstack = PadStack.from_sexpr(item)
             if item[0] == 'primitives':
                 object.customPadPrimitives = []
                 for primitive in item[1:]:
@@ -676,7 +680,7 @@ class Pad():
                 expression += f'\n{primitive.to_sexpr(newline=False,indent=indent+4)}'
             expression += f'\n{indents}  )'
 
-        expression += f'{uuid}){endline}'
+        expression += f'{uuid}{sexpr.maybe_to_sexpr(self.padstack)}){endline}'
         return expression
 
 @dataclass

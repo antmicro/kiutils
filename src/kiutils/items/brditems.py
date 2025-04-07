@@ -1388,7 +1388,12 @@ class PadStackLayer(SexprAuto):
     sexpr_prefix: ClassVar[str]= "layer"
     positional_args: ClassVar[List[str]] = ["key"]
     key: str=""
+    shape: Optional[Rstr]= None
     size: List[float]= field(default_factory=list)
+    rect_delta: List[float]= field(default_factory=list)
+    offset: List[float]= field(default_factory=list)
+    thermal_bridge_angle: Optional[float]=None
+    zone_connect: Optional[float]=None
 
 @dataclass
 class PadStack(SexprAuto):

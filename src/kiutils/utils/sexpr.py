@@ -84,10 +84,8 @@ def val_to_str(val: Any) -> str:
     if isinstance(val, dict):
         ret = ""
         for k, v in val.items():
-            print(k, v)
             prefix = getattr(v, PFIELD, None)
             if prefix:
-                print("@")
                 v.key = k
                 ret += maybe_to_sexpr(v)
             else:
