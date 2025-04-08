@@ -16,12 +16,52 @@ Documentation taken from:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, List, ClassVar, Dict
+from typing import Optional, List, ClassVar, Dict, Self
 
 from kiutils.items.common import Position
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
 from kiutils.utils.sexpr import SexprAuto, Rstr
+
+class LayerList(List[str]):
+    sexpr_prefix: ClassVar[List[str]]= ["layer", "layers"]
+
+    @classmethod
+    def from_sexpr(cls, exp: list) -> Self:
+        """Convert the given S-Expression into a Self object
+
+        Args:
+            - exp (list): Part of parsed S-Expression
+
+        Returns:
+            - Self: Object of the class initialized with the given S-Expression
+        """
+        return cls(exp[1:])
+
+
+    def to_sexpr(self, indent=0, newline=False) -> str:
+        """Generate the S-Expression representing this object
+
+        Args:
+            - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
+            - newline (bool): Adds a newline to the end of the output. Defaults to False.
+
+        Returns:
+            - str: S-Expression of this object
+        """
+        return sexpr.maybe_to_sexpr(list(self), "layers" if len(self) != 1 else "layer", indent, newline)
+
+class LayerAccess():
+    layers: Optional[LayerList]
+    @property
+    def layer(self)-> str:
+        return self.layers[0] if self.layers is not None and len(self.layers) else ""
+    @layer.setter
+    def layer(self, val: str)-> None:
+        if self.layers is not None and len(self.layers):
+            self.layers[0] = val 
+        else:
+            self.layers = LayerList([val])
 
 @dataclass
 class GeneralSettings():
@@ -414,7 +454,7 @@ class PlotSettings(SexprAuto):
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/#_plot_settings
     """
-    sexpr_prefix: ClassVar[str]= "pcbplotparams"
+    sexpr_prefix: ClassVar[List[str]]= ["pcbplotparams"]
     sexpr_case_convert: ClassVar[Optional[str]] = "lower"
 
     layerSelection: Rstr = Rstr("")
@@ -681,7 +721,7 @@ class SetupData():
 
 
 @dataclass
-class Segment():
+class Segment(LayerAccess):
     """The ``segment`` token defines a track segment in a KiCad board
 
     Documentation:
@@ -697,7 +737,7 @@ class Segment():
     width: float = 0.1
     """The ``width`` token defines the line width"""
 
-    layers: List[str] = field(default_factory=lambda: ["F.Cu"])
+    layers: LayerList = field(default_factory=lambda: LayerList(["F.Cu"]))
     """The ``layer`` token defines the canonical layer the track segment resides on"""
 
     locked: bool = False
@@ -713,15 +753,6 @@ class Segment():
     uuid: Optional[str] =""
     """The optional ``uuid`` defines the universally unique identifier"""
 
-    @property
-    def layer(self)-> str:
-        return self.layers[0] if len(self.layers) else ""
-    @layer.setter
-    def layer(self, val: str)-> None:
-        if len(self.layers):
-            self.layers[0]=val 
-        else:
-            self.layers.append(val)
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Segment:
@@ -749,8 +780,7 @@ class Segment():
             if item[0] == 'start': object.start = Position().from_sexpr(item)
             if item[0] == 'end': object.end = Position().from_sexpr(item)
             if item[0] == 'width': object.width = item[1]
-            if item[0] == 'layer': object.layer = item[1]
-            if item[0] == 'layers': object.layers = item[1:]
+            if item[0] in LayerList.sexpr_prefix: object.layers = LayerList.from_sexpr(item)
             if item[0] == 'solder_mask_margin': object.solder_mask_margin = item[1]
             if item[0] == 'net': object.net = item[1]
             if item[0] == 'uuid': object.uuid = item[1]
@@ -769,9 +799,8 @@ class Segment():
         indents = ' '*indent
         endline = '\n' if newline else ''
         locked = '( locked yes )' if self.locked else ''
-        layer_key = "layer" if len(self.layers) == 1 else "layers"
 
-        return f'{indents}(segment (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (width {self.width}){locked}{sexpr.maybe_to_sexpr([(self.layers, layer_key), (self.solder_mask_margin, "solder_mask_margin")])} (net {self.net}) (uuid "{dequote(self.uuid)}")){endline}'
+        return f'{indents}(segment (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (width {self.width}){locked}{sexpr.maybe_to_sexpr([self.layers, (self.solder_mask_margin, "solder_mask_margin")])} (net {self.net}) (uuid "{dequote(self.uuid)}")){endline}'
 
 
 @dataclass
@@ -1035,7 +1064,7 @@ class Generated:
 @dataclass
 class Teardrops(SexprAuto):
     """The ``tearadrops`` object defines via/pad teardrop connection"""
-    sexpr_prefix: ClassVar[str]= "teardrops"
+    sexpr_prefix: ClassVar[List[str]]= ["teardrops"]
     sexpr_case_convert: ClassVar[Optional[str]] = "snake"
 
     bestLengthRatio: Optional[float] = None
@@ -1074,7 +1103,7 @@ class Via(SexprAuto):
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/#_track_via
     """
-    sexpr_prefix: ClassVar[str]="via"
+    sexpr_prefix: ClassVar[List[str]] = ["via"]
     positional_args: ClassVar[List[str]] = ["type"]
     sexpr_case_convert: ClassVar[Optional[str]] = "snake" 
     type: Rstr = Rstr("")
@@ -1286,7 +1315,7 @@ class Target():
 
 @dataclass
 class PadStackLayer(SexprAuto):
-    sexpr_prefix: ClassVar[str]= "layer"
+    sexpr_prefix: ClassVar[List[str]]= ["layer"]
     positional_args: ClassVar[List[str]] = ["key"]
     key: str=""
     shape: Optional[Rstr]= None
@@ -1298,6 +1327,7 @@ class PadStackLayer(SexprAuto):
 
 @dataclass
 class PadStack(SexprAuto):
-    sexpr_prefix: ClassVar[str]= "padstack"
+    sexpr_prefix: ClassVar[List[str]]= ["padstack"]
     mode: Optional[Rstr]=None
     layers: Dict[str, PadStackLayer] = field(default_factory=dict, metadata={"flatten":True})
+

@@ -1238,7 +1238,7 @@ class HierarchicalPin():
         https://dev-docs.kicad.org/en/file-formats/sexpr-schematic/#_hierarchical_sheet_pin_definition
     """
 
-    sexpr_prefix: ClassVar[str] = "pin"
+    sexpr_prefix: ClassVar[List[str]] = ["pin"]
     name: str = ""
     """	The ``name`` attribute defines the name of the sheet pin. It must have an identically named
         hierarchical label in the associated schematic file."""
@@ -1432,7 +1432,7 @@ class HierarchicalSheet(SexprAuto):
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-schematic/#_hierarchical_sheet_section
     """
-    sexpr_prefix: ClassVar[str]="sheet"
+    sexpr_prefix: ClassVar[List[str]] = ["sheet"]
     position: Position = field(default_factory=Position)
     """The ``position`` defines the X and Y coordinates and angle of rotation of the sheet in the schematic"""
 
@@ -1970,7 +1970,7 @@ class NetclassFlag():
 
 @dataclass
 class SchTableCell(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "table_cell"
+    sexpr_prefix: ClassVar[List[str]] = ["table_cell"]
     positional_args: ClassVar[List[str]] = ["text"]
     text: str = ""
     exclude_from_sim: bool = False
@@ -1985,7 +1985,7 @@ class SchTableCell(SexprAuto):
 
 @dataclass
 class SchTable(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "table"
+    sexpr_prefix: ClassVar[List[str]] = ["table"]
     column_count: int = 0
     locked: Optional[bool]=None
     border: TableBorder = field(default_factory=TableBorder)
@@ -1997,7 +1997,7 @@ class SchTable(SexprAuto):
 
 @dataclass
 class SchBezier(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "bezier"
+    sexpr_prefix: ClassVar[List[str]] = ["bezier"]
     pts: List[Coordinate2D] = field(default_factory=list)
     locked: Optional[bool]=None
     stroke: Optional[Stroke] = None
@@ -2006,5 +2006,5 @@ class SchBezier(SexprAuto):
 
 @dataclass
 class RuleArea(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "rule_area"
+    sexpr_prefix: ClassVar[List[str]] = ["rule_area"]
     polyline: PolyLine = field(default_factory=PolyLine)

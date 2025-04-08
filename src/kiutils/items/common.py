@@ -33,7 +33,7 @@ class Position:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_position_identifier
     """
 
-    sexpr_prefix: ClassVar[str] = "at"
+    sexpr_prefix: ClassVar[List[str]] = ["at"]
     X: float = 0.0
     """The ``X`` attribute defines the horizontal position of the object"""
 
@@ -90,41 +90,41 @@ class Position:
             - str: S-Expression of this object
         """
         return sexpr.maybe_to_sexpr(
-            [self.X, self.Y, self.angle, (self.unlocked, "unlocked")], self.sexpr_prefix
+            [self.X, self.Y, self.angle, (self.unlocked, "unlocked")], self.sexpr_prefix[0]
         )
 
 
 class PositionStart(Position):
     """Same as ``Position`` class but SerDe with `start` instead `at`."""
 
-    sexpr_prefix: ClassVar[str] = "start"
+    sexpr_prefix: ClassVar[List[str]] = ["start"]
 
 
 class PositionEnd(Position):
     """Same as ``Position`` class but SerDe with `end` instead `at`."""
 
-    sexpr_prefix: ClassVar[str] = "end"
+    sexpr_prefix: ClassVar[List[str]] = ["end"]
 
 class PositionMid(Position):
     """Same as ``Position`` class but SerDe with `mid` instead `at`."""
 
-    sexpr_prefix: ClassVar[str] = "mid"
+    sexpr_prefix: ClassVar[List[str]] = ["mid"]
 class PositionCenter(Position):
     """Same as ``Position`` class but SerDe with `center` instead `at`."""
 
-    sexpr_prefix: ClassVar[str] = "center"
+    sexpr_prefix: ClassVar[List[str]] = ["center"]
 
 
 class Coordinate2D(Position):
     """Same as ``Position`` class but SerDe with `xy` instead `at`."""
 
-    sexpr_prefix: ClassVar[str] = "xy"
+    sexpr_prefix: ClassVar[List[str]] = ["xy"]
 
 
 class Size(Position):
     """Same as ``Position`` class but SerDe with `size` instead `at`."""
 
-    sexpr_prefix: ClassVar[str] = "size"
+    sexpr_prefix: ClassVar[List[str]] = ["size"]
 
 
 @dataclass
@@ -857,7 +857,7 @@ class Property():
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_symbol_property
     """
 
-    sexpr_prefix: ClassVar[str] = "property"
+    sexpr_prefix: ClassVar[List[str]] = ["property"]
     key: str = ""
     """The ``key`` string defines the name of the property and must be unique"""
 
@@ -1089,7 +1089,7 @@ class Fill(SexprAuto):
         - https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_fill_definition
     """
 
-    sexpr_prefix: ClassVar[str] = "fill"
+    sexpr_prefix: ClassVar[List[str]] = ["fill"]
     type: Optional[Rstr] = None
     """The ``type`` attribute defines how the graphical item is filled. Defaults to ``None``.
     Possible values are:
@@ -1317,13 +1317,13 @@ class EmbeddedFiles(List[EmbeddedFile]):
         if len(self) == 0:
             return ""
         return sexpr.maybe_to_sexpr(
-            self, name="embedded_files", indent=indent, newline=newline
+            list(self), name="embedded_files", indent=indent, newline=newline
         )
 
 
 @dataclass
 class TableBorder(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "border"
+    sexpr_prefix: ClassVar[List[str]] = ["border"]
     external: bool = False
     header: bool = False
     stroke: Optional[Stroke] = None
@@ -1331,7 +1331,7 @@ class TableBorder(SexprAuto):
 
 @dataclass
 class TableSeparators(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "separators"
+    sexpr_prefix: ClassVar[List[str]] = ["separators"]
     rows: bool = False
     cols: bool = False
     stroke: Optional[Stroke] = None
@@ -1339,7 +1339,7 @@ class TableSeparators(SexprAuto):
 
 @dataclass
 class PCBTableCell(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "table_cell"
+    sexpr_prefix: ClassVar[List[str]] = ["table_cell"]
     positional_args: ClassVar[List[str]] = ["text"]
     text: str = ""
     start: PositionStart = field(default_factory=PositionStart)
@@ -1354,7 +1354,7 @@ class PCBTableCell(SexprAuto):
 
 @dataclass
 class PCBTable(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "table"
+    sexpr_prefix: ClassVar[List[str]] = ["table"]
     column_count: int = 0
     locked: Optional[bool] = None
     layer: str = "Cmts.User"

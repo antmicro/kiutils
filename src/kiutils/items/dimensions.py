@@ -126,7 +126,7 @@ class DimensionStyle(SexprAuto):
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_dimension_style
     """
-    sexpr_prefix: ClassVar[str] = "style"
+    sexpr_prefix: ClassVar[List[str]] = ["style"]
     sexpr_case_convert: ClassVar[Optional[str]] = "snake" 
     
     thickness: float = 0.0

@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, ClassVar, cast
 
 from kiutils.items.common import Effects, Position, RenderCache, Stroke, Coordinate2D, PositionEnd, PositionStart, PositionCenter, PositionMid
+from kiutils.items.brditems import LayerList, LayerAccess
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
 from kiutils.utils.sexpr import SexprAuto
@@ -132,7 +133,7 @@ class GrTextBox(SexprAuto):
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_text_box
     """
-    sexpr_prefix: ClassVar[str] = "gr_text_box"
+    sexpr_prefix: ClassVar[List[str]] = ["gr_text_box"]
     positional_args: ClassVar[List[str]] = ["text"]
     
 
@@ -188,13 +189,13 @@ class GrTextBox(SexprAuto):
 
 
 @dataclass
-class GrLine(SexprAuto):
+class GrLine(SexprAuto, LayerAccess):
     """The ``gr_line`` token defines a graphical line.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_line
     """
-    sexpr_prefix: ClassVar[str]= "gr_line"
+    sexpr_prefix: ClassVar[List[str]] = ["gr_line"]
 
     start: PositionStart = field(default_factory=lambda: PositionStart())
     """The ``start`` token defines the coordinates of the start of the line"""
@@ -212,8 +213,10 @@ class GrLine(SexprAuto):
     """The optional ``stroke`` token describes the style of an optional border to be drawn around 
     the text box"""
 
-    layer: Optional[str] = None
-    """The ``layer`` token defines the canonical layer the rectangle resides on"""
+    layers: Optional[LayerList] = None
+    """The ``layer`` token defines the canonical layer the shape resides on"""
+
+    solder_mask_margin: Optional[float] = None
 
     width: Optional[float] = None     # Used for KiCad < 7
     """The ``width`` token defines the line width of the rectangle. (prior to version 7)"""
@@ -225,13 +228,13 @@ class GrLine(SexprAuto):
     """The optional ``uuid`` defines the universally unique identifier"""
 
 @dataclass
-class GrRect(SexprAuto):
+class GrRect(SexprAuto, LayerAccess):
     """The ``gr_rect`` token defines a graphical rectangle.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_rectangle
     """
-    sexpr_prefix: ClassVar[str]= "gr_rect"
+    sexpr_prefix: ClassVar[List[str]]= ["gr_rect"]
 
     start: PositionStart = field(default_factory=lambda: PositionStart())
     """The ``start`` token defines the coordinates of the upper left corner of the rectangle"""
@@ -252,8 +255,10 @@ class GrRect(SexprAuto):
     fill: Optional[bool] = None
     """The optional ``fill`` toke defines how the rectangle is filled. Valid fill types are solid and none. If not defined, the rectangle is not filled"""
 
-    layer: Optional[str] = None
-    """The ``layer`` token defines the canonical layer the rectangle resides on"""
+    layers: Optional[LayerList] = None
+    """The ``layer`` token defines the canonical layer the shape resides on"""
+
+    solder_mask_margin: Optional[float] = None
 
     net: Optional[int] = None
     """The ``net`` token defines by net ordinal number which object belongs to"""
@@ -262,13 +267,13 @@ class GrRect(SexprAuto):
     """The optional ``uuid`` defines the universally unique identifier"""
 
 @dataclass
-class GrCircle(SexprAuto):
+class GrCircle(SexprAuto, LayerAccess):
     """The ``gr_circle `` token defines a graphical circle.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_circle
     """
-    sexpr_prefix: ClassVar[str]= "gr_circle"
+    sexpr_prefix: ClassVar[List[str]]= ["gr_circle"]
 
     center: PositionCenter = field(default_factory=lambda: PositionCenter())
     """The ``center`` token defines the coordinates of the center of the circle"""
@@ -289,8 +294,10 @@ class GrCircle(SexprAuto):
     fill: Optional[bool] = None
     """The optional ``fill`` toke defines how the circle is filled. Valid fill types are solid and none. If not defined, the rectangle is not filled"""
 
-    layer: Optional[str] = None
-    """The ``layer`` token defines the canonical layer the circle resides on"""
+    layers: Optional[LayerList] = None
+    """The ``layer`` token defines the canonical layer the shape resides on"""
+
+    solder_mask_margin: Optional[float] = None
 
     net: Optional[int] = None
     """The ``net`` token defines by net ordinal number which object belongs to"""
@@ -299,13 +306,13 @@ class GrCircle(SexprAuto):
     """The optional ``uuid`` defines the universally unique identifier"""
 
 @dataclass
-class GrArc(SexprAuto):
+class GrArc(SexprAuto, LayerAccess):
     """The ``gr_arc`` token defines a graphic arc.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_arc
     """
-    sexpr_prefix: ClassVar[str]= "gr_arc"
+    sexpr_prefix: ClassVar[List[str]]= ["gr_arc"]
 
     start: PositionStart = field(default_factory=lambda: PositionStart())
     """The ``start`` token defines the coordinates of the start position of the arc radius"""
@@ -323,8 +330,10 @@ class GrArc(SexprAuto):
     """The optional ``stroke`` token describes the style of an optional border to be drawn around 
     the text box"""
 
-    layer: Optional[str] = None
-    """The ``layer`` token defines the canonical layer the arc resides on"""
+    layers: Optional[LayerList] = None
+    """The ``layer`` token defines the canonical layer the shape resides on"""
+
+    solder_mask_margin: Optional[float] = None
 
     width: Optional[float] = None     # Used for KiCad < 7
     """The ``width`` token defines the line width of the arc. (prior to version 7)"""
@@ -337,13 +346,13 @@ class GrArc(SexprAuto):
 
 
 @dataclass
-class GrPoly(SexprAuto):
+class GrPoly(SexprAuto, LayerAccess):
     """The ``gr_poly`` token defines a graphic polygon in a footprint definition.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_polygon
     """
-    sexpr_prefix: ClassVar[str]= "gr_poly"
+    sexpr_prefix: ClassVar[List[str]]= ["gr_poly"]
 
     pts: List[Coordinate2D] = field(default_factory=list)
     """The ``layer`` token defines the canonical layer the polygon resides on"""
@@ -361,8 +370,10 @@ class GrPoly(SexprAuto):
     fill: Optional[bool] = None
     """The optional ``fill`` toke defines how the polygon is filled. Valid fill types are solid and none. If not defined, the rectangle is not filled"""
 
-    layer: Optional[str] = None
-    """The ``coordinates`` define the list of X/Y coordinates of the polygon outline"""
+    layers: Optional[LayerList] = None
+    """The ``layer`` token defines the canonical layer the shape resides on"""
+
+    solder_mask_margin: Optional[float] = None
 
     net: Optional[int] = None
     """The ``net`` token defines by net ordinal number which object belongs to"""
@@ -376,16 +387,13 @@ class GrPoly(SexprAuto):
         return [cast(Position, i) for i in self.pts]
 
 @dataclass
-class GrCurve(SexprAuto):
+class GrCurve(SexprAuto, LayerAccess):
     """The ``gr_curve`` token defines a graphic Cubic Bezier curve in a footprint definition.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_curve
     """
-    sexpr_prefix: ClassVar[str] = "gr_curve"
-
-    locked: Optional[bool] = None
-    """The ``locked`` token defines if the object may be moved or not"""
+    sexpr_prefix: ClassVar[List[str]] = ["gr_curve"]
 
     pts: List[Coordinate2D] = field(default_factory=list)
     """The ``pts`` define the list of X/Y coordinates of the curve outline"""
@@ -396,8 +404,13 @@ class GrCurve(SexprAuto):
     stroke: Optional[Stroke] = None
     """The optional ``stroke`` token describes the style of line"""
 
-    layer: Optional[str] = None
+    locked: Optional[bool] = None
+    """The ``locked`` token defines if the object may be moved or not"""
+
+    layers: Optional[LayerList] = None
     """The ``layer`` token defines the canonical layer the curve resides on"""
+
+    solder_mask_margin: Optional[float] = None
 
     net: Optional[int] = None
     """The ``net`` token defines by net ordinal number which object belongs to"""

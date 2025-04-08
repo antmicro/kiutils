@@ -70,6 +70,8 @@ def parse_bool(arr: List[str]) -> bool:
 
 
 def val_to_str(val: Any) -> str:
+    if hasattr(val, "to_sexpr"):
+        return val.to_sexpr()
     if isinstance(val, bool):
         if val:
             return "yes"
@@ -84,7 +86,7 @@ def val_to_str(val: Any) -> str:
     if isinstance(val, dict):
         ret = ""
         for k, v in val.items():
-            prefix = getattr(v, PFIELD, None)
+            prefix = getattr(v, PFIELD)[0]
             if prefix:
                 v.key = k
                 ret += maybe_to_sexpr(v)
@@ -99,7 +101,7 @@ def val_to_str(val: Any) -> str:
         val = val.replace('"', '\\"')
         return f'"{val}"'
 
-    return val.to_sexpr()  # This will throw exceptions if type does not have to_sexpr()
+    return ""
 
 
 def maybe_to_sexpr(val: Any, name: str = "", indent=1, newline=False) -> str:
@@ -127,10 +129,13 @@ class Rstr(str):
 
     pass
 
+
 def from_sexpr(cls: Any, full_exp: Any, w_name: bool = True) -> Any:
     """Deserialization implementation for standard types"""
     exp = full_exp[1:] if w_name else full_exp
     obj: Any
+    if hasattr(cls, "from_sexpr"):
+        return cls.from_sexpr(full_exp)
     if get_origin(cls) == list:
         obj = []
         for i in exp:
@@ -163,25 +168,23 @@ def from_sexpr(cls: Any, full_exp: Any, w_name: bool = True) -> Any:
         return cls(exp[0] if isinstance(exp, list) else exp)
     if cls == bool:
         return parse_bool(full_exp)
-    return cls.from_sexpr(full_exp)
 
 
 class SexprAuto:
     """Class that automatically implements Sexpr Ser/Deser for dataclass."""
 
-    sexpr_prefix: ClassVar[str] = ""
+    sexpr_prefix: ClassVar[List[str]] = []
     positional_args: ClassVar[List[str]] = []
     sexpr_case_convert: ClassVar[Optional[str]] = None
 
-    
     @classmethod
     def _get_sexpr_name(cls, field: Field) -> str:
-        name=field.name
+        name = field.name
         match field.metadata.get("case", cls.sexpr_case_convert):
             case "lower":
-                name=name.lower()
+                name = name.lower()
             case "snake":
-                name=re.sub(r'([A-Z][a-z])', r'_\1', name).lower()
+                name = re.sub(r"([A-Z][a-z])", r"_\1", name).lower()
         return field.metadata.get("alias", name)
 
     @classmethod
@@ -210,18 +213,29 @@ class SexprAuto:
 
                 fval = getattr(obj, f.name)
                 ftype = types[f.name]
+
                 if f.metadata.get("flatten", False):
                     otype = get_origin(ftype)
                     itypes = get_args(ftype)
-                    if otype == list and getattr(itypes[0], PFIELD, None) == item[0]:
+                    if otype == list and item[0] in getattr(itypes[0], PFIELD, []):
                         fval.append(from_sexpr(itypes[0], item))
                         setattr(obj, f.name, fval)
                         break
-                    if otype == dict and getattr(itypes[1], PFIELD, None) == item[0]:
+                    if otype == dict and item[0] in getattr(itypes[1], PFIELD, []):
                         fval[item[1]] = from_sexpr(itypes[1], item)
                         setattr(obj, f.name, fval)
                         break
-                elif item[0] == ser_name or getattr(fval, PFIELD, None) == item[0]:
+                elif item[0] == ser_name or item[0] in getattr(fval, PFIELD, []):
+                    setattr(obj, f.name, from_sexpr(ftype, item))
+                    break
+                elif (
+                    get_origin(ftype) is Union
+                    and type(None) in get_args(ftype)
+                    and item[0]
+                    in getattr(
+                        [i for i in get_args(ftype) if not type(None) == i][0], PFIELD, []
+                    )
+                ):
                     setattr(obj, f.name, from_sexpr(ftype, item))
                     break
 
@@ -257,7 +271,7 @@ class SexprAuto:
                 self._sexpr_inter_tuple(f, f.name in self.positional_args)
                 for f in fields(self)
             ],
-            name=self.sexpr_prefix,
+            name=self.sexpr_prefix[0],
             indent=indent,
             newline=newline,
         )

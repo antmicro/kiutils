@@ -525,7 +525,7 @@ class ZoneAttrTeardropType(Enum):
 
 @dataclass
 class Placement(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "placement"
+    sexpr_prefix: ClassVar[List[str]] = ["placement"]
     enabled: bool = False
     sheetname: str = ""
 

@@ -685,7 +685,7 @@ class Pad():
 
 @dataclass
 class ComponentClass(SexprAuto):
-    sexpr_prefix: ClassVar[str] = "class"
+    sexpr_prefix: ClassVar[List[str]] = ["class"]
     positional_args : ClassVar[List[str]] = ["text"]
     text: str = ""
 
