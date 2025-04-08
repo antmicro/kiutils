@@ -127,7 +127,6 @@ class Rstr(str):
 
     pass
 
-
 def from_sexpr(cls: Any, full_exp: Any, w_name: bool = True) -> Any:
     """Deserialization implementation for standard types"""
     exp = full_exp[1:] if w_name else full_exp
@@ -172,6 +171,18 @@ class SexprAuto:
 
     sexpr_prefix: ClassVar[str] = ""
     positional_args: ClassVar[List[str]] = []
+    sexpr_case_convert: ClassVar[Optional[str]] = None
+
+    
+    @classmethod
+    def _get_sexpr_name(cls, field: Field) -> str:
+        name=field.name
+        match field.metadata.get("case", cls.sexpr_case_convert):
+            case "lower":
+                name=name.lower()
+            case "snake":
+                name=re.sub(r'([A-Z][a-z])', r'_\1', name).lower()
+        return field.metadata.get("alias", name)
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Self:
@@ -195,6 +206,8 @@ class SexprAuto:
                 positional_idx += 1
                 continue
             for f in fields(obj):
+                ser_name = cls._get_sexpr_name(f)
+
                 fval = getattr(obj, f.name)
                 ftype = types[f.name]
                 if f.metadata.get("flatten", False):
@@ -208,7 +221,7 @@ class SexprAuto:
                         fval[item[1]] = from_sexpr(itypes[1], item)
                         setattr(obj, f.name, fval)
                         break
-                elif item[0] == f.name or getattr(fval, PFIELD, None) == item[0]:
+                elif item[0] == ser_name or getattr(fval, PFIELD, None) == item[0]:
                     setattr(obj, f.name, from_sexpr(ftype, item))
                     break
 
@@ -218,11 +231,16 @@ class SexprAuto:
         self, f: Field, no_name: bool
     ) -> Union[Tuple[Any, str], Any]:
         val = getattr(self, f.name)
-        if f.metadata.get("force_empty", False) and isinstance(val, list) and len(val) == 0:
-            return Rstr(f"({f.name})")
+        ser_name = self._get_sexpr_name(f)
+        if (
+            f.metadata.get("force_empty", False)
+            and isinstance(val, list)
+            and len(val) == 0
+        ):
+            return Rstr(f"({ser_name})")
         if hasattr(val, "to_sexpr") or no_name or f.metadata.get("flatten", False):
             return val
-        return (val, f.name)
+        return (val, ser_name)
 
     def to_sexpr(self, indent=0, newline=False) -> str:
         """Generate the S-Expression representing this object

@@ -193,7 +193,7 @@ class ColorRGBA:
     B: int = 0
     """The ``B`` token defines the blue channel of the color"""
 
-    A: int = 0
+    A: float = 0
     """The ``A`` token defines the alpha channel of the color"""
 
     precision: Optional[int] = None
@@ -1159,9 +1159,7 @@ class Fill(SexprAuto):
 
     color: Optional[ColorRGBA] = None
     """The optional ``color`` token defines the color of the filled item.
-
     Available since KiCad v7"""
-
 
 @dataclass
 class Image:

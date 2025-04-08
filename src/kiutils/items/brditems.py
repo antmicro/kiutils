@@ -407,18 +407,20 @@ class Stackup():
         return expression
 
 @dataclass
-class PlotSettings():
+class PlotSettings(SexprAuto):
     """The ``pcbplotparams`` token defines the plotting and printing settings used for the last
     plot and is defined in the set up section.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/#_plot_settings
     """
+    sexpr_prefix: ClassVar[str]= "pcbplotparams"
+    sexpr_case_convert: ClassVar[Optional[str]] = "lower"
 
-    layerSelection: str = ""
+    layerSelection: Rstr = Rstr("")
     """The ``layerSelection`` token defines a hexadecimal bit set of the layers to plot"""
 
-    plotOnAllLayersSelection: Optional[str] = None
+    plotOnAllLayersSelection: Optional[Rstr] = field(default=None, metadata={"case": "snake"})
     """The ``plotOnAllLayersSelection`` token defines a hexadecimal bit set of layers where all 
     selected layers shall be plotted.
     
@@ -454,6 +456,9 @@ class PlotSettings():
     
     Available and required since KiCad v7"""
 
+    dashed_line_dash_ratio: float = 12
+    dashed_line_gap_ratio: float = 3
+
     svgUseInch: Optional[bool] = None
     """The ``svgUseInch`` token defines if inch units should be use when plotting SVG files.
     
@@ -467,11 +472,11 @@ class PlotSettings():
     
     Required until KiCad v6, removed since KiCad v7"""
 
-    plotFameRef: bool = False
-    """The ``plotFameRef`` token defines if the border and title block should be plotted"""
+    plotFrameRef: bool = False
+    """The ``plotFrameRef`` token defines if the border and title block should be plotted"""
 
-    viasOnMask: bool = False
-    """The ``viasOnMask`` token defines if the vias are to be tented"""
+    viasOnMask: Optional[bool] = None
+    """The ``viasOnMask`` token defines if the vias are to be tented (replaced by `brditems.SetupData.tenting`)"""
 
     mode: int = 1
     """The ``mode`` token defines the plot mode. An attribute of 1 plots in the normal
@@ -489,6 +494,17 @@ class PlotSettings():
     hpglPenDiameter: float = 0.0
     """The ``hpglPenDiameter`` token defines the floating point pen size for HPGL plots"""
 
+    pdfFrontFpPropertyPopups: bool = field(default=False, metadata={"case": "snake"})
+    """Generate property popups for front footprints: When enabled, interactive popups will be added
+    to the generated PDF containing part information for each footprint on the front of the board."""
+
+    pdfBackFpPropertyPopups: bool = field(default=False, metadata={"case": "snake"})
+    """Generate property popups for back footprints: When enabled, interactive popups will be added
+    to the generated PDF containing part information for each footprint on the back of the board."""
+
+    pdf_metadata: bool = True
+    pdf_single_document: bool = False
+
     dxfPolygonMode: bool = False
     """The ``dxfPolygonMode`` token defines if the polygon mode should be used for DXF plots"""
 
@@ -505,18 +521,25 @@ class PlotSettings():
     psA4Output: bool = False
     """The ``psA4Output`` token defines if the A4 page size should be used for PostScript plots"""
 
-    plotReference: bool = False
+    plot_black_and_white: bool = False
+
+    plotReference: Optional[bool] = None
     """The ``plotReference`` token defines if hidden reference field text should be plotted"""
 
-    plotValue: bool = False
+    plotValue: Optional[bool] = None
     """The ``plotValue`` token defines if hidden value field text should be plotted"""
 
-    plotInvisibleText: bool = False
+    plotInvisibleText: Optional[bool] = None
     """The ``plotInvisibleText`` token defines if hidden text other than the reference and
     value fields should be plotted"""
 
     sketchPadsOnFab: bool = False
     """The ``sketchPadsOnFab`` token defines if pads should be plotted in the outline (sketch) mode"""
+
+    plotPadNumbers: bool = False
+    hideDnpOnFab: bool = False
+    sketchDnpOnFab: bool = True
+    crossOutDnpOnFab: bool = True
 
     subtractMaskFromSilk: bool = False
     """The ``subtractMaskFromSilk`` token defines if the solder mask layers should be subtracted from
@@ -544,138 +567,8 @@ class PlotSettings():
     """The ``drillShape`` token defines the path relative to the current project path
     where the plot files will be saved"""
 
-    pdfFrontFpPropertyPopups: bool = False
-    """Generate property popups for front footprints: When enabled, interactive popups will be added
-    to the generated PDF containing part information for each footprint on the front of the board."""
-
-    pdfBackFpPropertyPopups: bool = False
-    """Generate property popups for back footprints: When enabled, interactive popups will be added
-    to the generated PDF containing part information for each footprint on the back of the board."""
-
-    plotFpText: bool = False
+    plotFpText: Optional[bool] = None
     """Indicates if footprint text should be printed to output"""
-
-    @classmethod
-    def from_sexpr(cls, exp: list) -> PlotSettings:
-        """Convert the given S-Expresstion into a PlotSettings object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(pcbplotparams ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not pcbplotparams
-
-        Returns:
-            - PlotSettings: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != 'pcbplotparams':
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-        for item in exp:
-            if item[0] == 'layerselection': object.layerSelection = item[1]
-            if item[0] == 'plot_on_all_layers_selection': object.plotOnAllLayersSelection = item[1]
-            if item[0] == 'disableapertmacros': object.disableApertMacros = sexpr.parse_bool(item)
-            if item[0] == 'usegerberextensions' : object.useGerberExtensions = sexpr.parse_bool(item)
-            if item[0] == 'usegerberattributes' : object.useGerberAttributes = sexpr.parse_bool(item)
-            if item[0] == 'usegerberadvancedattributes' : object.useGerberAdvancedAttributes = sexpr.parse_bool(item)
-            if item[0] == 'creategerberjobfile' : object.createGerberJobFile = sexpr.parse_bool(item)
-            if item[0] == 'dashed_line_dash_ratio': object.dashedLineDashRatio = item[1]
-            if item[0] == 'dashed_line_gap_ratio': object.dashedLineGapRatio = item[1]
-            if item[0] == 'svguseinch' : object.svgUseInch = sexpr.parse_bool(item)
-            if item[0] == 'svgprecision' : object.svgPrecision = item[1]
-            if item[0] == 'excludeedgelayer' : object.excludeEdgeLayer = sexpr.parse_bool(item)
-            if item[0] == 'plotframeref' : object.plotFameRef = sexpr.parse_bool(item)
-            if item[0] == 'viasonmask' : object.viasOnMask = sexpr.parse_bool(item)
-            if item[0] == 'mode' : object.mode = item[1]
-            if item[0] == 'useauxorigin' : object.useAuxOrigin = sexpr.parse_bool(item)
-            if item[0] == 'hpglpennumber' : object.hpglPenNumber = item[1]
-            if item[0] == 'hpglpenspeed' : object.hpglPenSpeed = item[1]
-            if item[0] == 'hpglpendiameter' : object.hpglPenDiameter = item[1]
-            if item[0] == 'dxfpolygonmode' : object.dxfPolygonMode = sexpr.parse_bool(item)
-            if item[0] == 'dxfimperialunits' : object.dxfImperialUnits = sexpr.parse_bool(item)
-            if item[0] == 'dxfusepcbnewfont' : object.dxfUsePcbnewFont = sexpr.parse_bool(item)
-            if item[0] == 'psnegative' : object.psNegative = sexpr.parse_bool(item)
-            if item[0] == 'psa4output' : object.psA4Output = sexpr.parse_bool(item)
-            if item[0] == 'plotreference' : object.plotReference = sexpr.parse_bool(item)
-            if item[0] == 'plotvalue' : object.plotValue = sexpr.parse_bool(item)
-            if item[0] == 'plotinvisibletext' : object.plotInvisibleText = sexpr.parse_bool(item)
-            if item[0] == 'sketchpadsonfab' : object.sketchPadsOnFab = sexpr.parse_bool(item)
-            if item[0] == 'subtractmaskfromsilk' : object.subtractMaskFromSilk = sexpr.parse_bool(item)
-            if item[0] == 'outputformat' : object.outputFormat = item[1]
-            if item[0] == 'mirror' : object.mirror = sexpr.parse_bool(item)
-            if item[0] == 'drillshape' : object.drillShape = item[1]
-            if item[0] == 'scaleselection' : object.scaleSelection = item[1]
-            if item[0] == 'outputdirectory' : object.outputDirectory = item[1]
-            if item[0] == 'pdf_front_fp_property_popups' : object.pdfFrontFpPropertyPopups = sexpr.parse_bool(item)
-            if item[0] == 'pdf_back_fp_property_popups' : object.pdfBackFpPropertyPopups = sexpr.parse_bool(item)
-            if item[0] == 'plotfptext' : object.plotFpText  = sexpr.parse_bool(item)
-        return object
-
-    def to_sexpr(self, indent=4, newline=True) -> str:
-        """Generate the S-Expression representing this object
-
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 4.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-
-        bools = ('no','yes')
-
-        expression =  f'{indents}(pcbplotparams\n'
-        expression += f'{indents}  (layerselection {self.layerSelection})\n'
-        if self.plotOnAllLayersSelection is not None:
-            expression += f'{indents}  (plot_on_all_layers_selection {self.plotOnAllLayersSelection})\n'
-        expression += f'{indents}  (disableapertmacros {bools[self.disableApertMacros]})\n'
-        expression += f'{indents}  (usegerberextensions {bools[self.useGerberExtensions]})\n'
-        expression += f'{indents}  (usegerberattributes {bools[self.useGerberAttributes]})\n'
-        expression += f'{indents}  (usegerberadvancedattributes {bools[self.useGerberAdvancedAttributes]})\n'
-        expression += f'{indents}  (creategerberjobfile {bools[self.createGerberJobFile]})\n'
-        if self.dashedLineDashRatio is not None:
-            expression += f'{indents}  (dashed_line_dash_ratio {float(self.dashedLineDashRatio):.6f})\n'
-        if self.dashedLineGapRatio is not None:
-            expression += f'{indents}  (dashed_line_gap_ratio {float(self.dashedLineGapRatio):.6f})\n'
-        if self.svgUseInch is not None:
-            expression += f'{indents}  (svguseinch {bools[self.svgUseInch]})\n'
-        expression += f'{indents}  (svgprecision {self.svgPrecision})\n'
-        if self.excludeEdgeLayer is not None:
-            expression += f'{indents}  (excludeedgelayer {bools[self.excludeEdgeLayer]})\n'
-        expression += f'{indents}  (plotframeref {bools[self.plotFameRef]})\n'
-        expression += f'{indents}  (viasonmask {bools[self.viasOnMask]})\n'
-        expression += f'{indents}  (mode {self.mode})\n'
-        expression += f'{indents}  (useauxorigin {bools[self.useAuxOrigin]})\n'
-        expression += f'{indents}  (hpglpennumber {self.hpglPenNumber})\n'
-        expression += f'{indents}  (hpglpenspeed {self.hpglPenSpeed})\n'
-        expression += f'{indents}  (hpglpendiameter {float(self.hpglPenDiameter):.6f})\n'
-        expression += f'{indents}  (pdf_front_fp_property_popups {bools[self.pdfFrontFpPropertyPopups]})'
-        expression += f'{indents}  (pdf_back_fp_property_popups {bools[self.pdfBackFpPropertyPopups]})'
-        expression += f'{indents}  (dxfpolygonmode {bools[self.dxfPolygonMode]})\n'
-        expression += f'{indents}  (dxfimperialunits {bools[self.dxfImperialUnits]})\n'
-        expression += f'{indents}  (dxfusepcbnewfont {bools[self.dxfUsePcbnewFont]})\n'
-        expression += f'{indents}  (psnegative {bools[self.psNegative]})\n'
-        expression += f'{indents}  (psa4output {bools[self.psA4Output]})\n'
-        expression += f'{indents}  (plotreference {bools[self.plotReference]})\n'
-        expression += f'{indents}  (plotvalue {bools[self.plotValue]})\n'
-        expression += f'{indents}  (plotfptext {bools[self.plotFpText]})\n'
-        expression += f'{indents}  (plotinvisibletext {bools[self.plotInvisibleText]})\n'
-        expression += f'{indents}  (sketchpadsonfab {bools[self.sketchPadsOnFab]})\n'
-        expression += f'{indents}  (subtractmaskfromsilk {bools[self.subtractMaskFromSilk]})\n'
-        expression += f'{indents}  (outputformat {self.outputFormat})\n'
-        expression += f'{indents}  (mirror {bools[self.mirror]})\n'
-        expression += f'{indents}  (drillshape {self.drillShape})\n'
-        expression += f'{indents}  (scaleselection {self.scaleSelection})\n'
-        expression += f'{indents}  (outputdirectory "{dequote(self.outputDirectory)}")\n'
-        expression += f'{indents}){endline}'
-        return expression
 
 
 @dataclass
@@ -721,6 +614,9 @@ class SetupData():
     allowSoldermaskBridgesInFootprints: Optional[bool] = None
     """Inidcates if footprints on board are allowed to have pads bridged with soldermask"""
 
+    tenting: List[Rstr] = field(default_factory=list)
+    """Boardwide via tenting options"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> SetupData:
         """Convert the given S-Expresstion into a SetupData object
@@ -748,6 +644,7 @@ class SetupData():
             if item[0] == 'pad_to_mask_clearance': object.packToMaskClearance = item[1]
             if item[0] == 'allow_soldermask_bridges_in_footprints': object.allowSoldermaskBridgesInFootprints = sexpr.parse_bool(item)
             if item[0] == 'solder_mask_min_width': object.solderMaskMinWidth = item[1]
+            if item[0] == 'tenting': object.tenting = sexpr.from_sexpr(list[Rstr], item[1:], False)
             if item[0] == 'pad_to_paste_clearance': object.padToPasteClearance = item[1]
             if item[0] == 'pad_to_paste_clearance_ratio': object.padToPasteClearanceRatio = item[1]
             if item[0] == 'aux_axis_origin': object.auxAxisOrigin = Position().from_sexpr(item)
@@ -774,6 +671,7 @@ class SetupData():
         if self.solderMaskMinWidth is not None:                   expression += f'{indents}  (solder_mask_min_width {self.solderMaskMinWidth})\n'
         if self.padToPasteClearance is not None:                  expression += f'{indents}  (pad_to_paste_clearance {self.padToPasteClearance})\n'
         if self.allowSoldermaskBridgesInFootprints is not None:   expression += f'{indents}  (allow_soldermask_bridges_in_footprints {"yes" if self.allowSoldermaskBridgesInFootprints else "no"} )'
+        if self.tenting is not None:                              expression += sexpr.maybe_to_sexpr(self.tenting, "tenting", indent)
         if self.padToPasteClearanceRatio is not None:             expression += f'{indents}  (pad_to_paste_clearance_ratio {self.padToPasteClearanceRatio})\n'
         if self.auxAxisOrigin is not None:                        expression += f'{indents}  (aux_axis_origin {self.auxAxisOrigin.X} {self.auxAxisOrigin.Y})\n'
         if self.gridOrigin is not None:                           expression += f'{indents}  (grid_origin {self.gridOrigin.X} {self.gridOrigin.Y})\n'
@@ -1214,7 +1112,7 @@ class Via(SexprAuto):
     teardrops: Optional[Teardrops] = None
     """Defines teardrop connections of via"""
 
-    tenting: Optional[Rstr] = None
+    tenting: List[Rstr] = field(default_factory=list)
     """Via tenting option"""
 
     net: Optional[int] = 0
