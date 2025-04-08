@@ -127,26 +127,28 @@ class DimensionStyle(SexprAuto):
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_dimension_style
     """
     sexpr_prefix: ClassVar[str] = "style"
+    sexpr_case_convert: ClassVar[Optional[str]] = "snake" 
+    
     thickness: float = 0.0
     """The ``thickness`` token defines the line thickness of the dimension"""
 
-    arrow_length: float = 0.0
+    arrowLength: float = 0.0
     """The ``arrowLength`` token defines the length of the dimension arrows"""
 
-    text_position_mode: int = 0
+    textPositionMode: int = 0
     """The ``textPositionMode`` token defines the position mode of the dimension text. Valid position
     modes are as follows:
     - 0: Text is outside the dimension line
     - 1: Text is in line with the dimension line
     - 2: Text has been manually placed by the user"""
 
-    arrow_direction: Optional[Rstr]=None
+    arrowDirection: Optional[Rstr]=None
 
-    extension_height: Optional[float] = None
+    extensionHeight: Optional[float] = None
     """The optional ``extensionHeight`` token defines the length of the extension lines past the
     dimension crossbar"""
 
-    text_frame: Optional[int] = None
+    textFrame: Optional[int] = None
     """The optional ``textFrame`` token defines the style of the frame around the dimension text. This
     only applies to leader dimensions. Valid text frames are as follows:
     - 0: No text frame
@@ -154,11 +156,11 @@ class DimensionStyle(SexprAuto):
     - 2: Circle
     - 3:Rounded rectangle"""
 
-    extension_offset: Optional[float] = None
+    extensionOffset: Optional[float] = None
     """The optional ``extensionOffset`` token defines the distance from feature points to extension
     line start"""
 
-    keep_text_aligned: Optional[bool] = None
+    keepTextAligned: Optional[bool] = None
     """The ``keepTextAligned`` token indicates that the dimension text should be kept in line with the
     dimension crossbar. When false, the dimension text is shown horizontally regardless of the
     orientation of the dimension."""

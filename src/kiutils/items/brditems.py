@@ -1036,33 +1036,35 @@ class Generated:
 class Teardrops(SexprAuto):
     """The ``tearadrops`` object defines via/pad teardrop connection"""
     sexpr_prefix: ClassVar[str]= "teardrops"
-    best_length_ratio: Optional[float] = None
+    sexpr_case_convert: ClassVar[Optional[str]] = "snake"
+
+    bestLengthRatio: Optional[float] = None
     """Defines length of teardrop in relation to pad/via width"""
 
-    max_length: Optional[float] = None
+    maxLength: Optional[float] = None
     """Defines maximum length of teardrop"""
 
-    best_width_ratio: Optional[float] = None
+    bestWidthRatio: Optional[float] = None
     """Defines width (on wider side) of teardrop in relation to pad/via width"""
 
-    max_width: Optional[float] = None
+    maxWidth: Optional[float] = None
     """Defines maximum width of teardrop"""
 
-    curved_edges: Optional[bool] = None
+    curvedEdges: Optional[bool] = None
 
-    curve_points: Optional[int] = None
+    curvePoints: Optional[int] = None
     """Defines aproximation quality of curved teardrop"""
 
-    filter_ratio: Optional[float] = None
+    filterRatio: Optional[float] = None
     """Skip teardrop if ratio of pad/via width to track width is larger than ``filterRatio``"""
 
     enabled: Optional[bool] = None
     """Controls if teardrop should be generated for pad/via"""
 
-    allow_two_segments: Optional[bool] = None
+    allowTwoSegments: Optional[bool] = None
     """Can teardrop span over two track segments"""
 
-    prefer_zone_connections: Optional[bool] = None
+    preferZoneConnections: Optional[bool] = None
     """Controls zone connection should use teardrops"""
 
 @dataclass
@@ -1074,6 +1076,7 @@ class Via(SexprAuto):
     """
     sexpr_prefix: ClassVar[str]="via"
     positional_args: ClassVar[List[str]] = ["type"]
+    sexpr_case_convert: ClassVar[Optional[str]] = "snake" 
     type: Rstr = Rstr("")
     """The optional ``type`` attribute specifies the via type. Valid via types are ``blind`` and
     ``micro``. If no type is defined, the via is a through hole type"""
@@ -1094,16 +1097,16 @@ class Via(SexprAuto):
 
     locked: Optional[bool] = None
     """The ``locked`` token defines if the line cannot be edited"""
-    remove_unused_layers: Optional[bool] = None
+    removeUnusedLayers: Optional[bool] = None
     """The ``removeUnusedLayers`` token is undocumented (as of 20.02.2022)"""
 
-    keep_end_layers: Optional[bool] = None
+    keepEndLayers: Optional[bool] = None
     """The ``keepEndLayers`` token is undocumented (as of 20.02.2022)"""
 
     free: Optional[bool] = None
     """The ``free`` token indicates that the via is free to be moved outside it's assigned net"""
 
-    zone_layer_connections: Optional[List[str]] = field(default=None, metadata={"force_empty": True})
+    zoneLayerConnections: Optional[List[str]] = field(default=None, metadata={"force_empty": True})
     """Indicates which cooper layers are connected"""
 
     padstack: Optional[PadStack]= None
