@@ -24,7 +24,7 @@ from kiutils.items.common import Effects, Position, RenderCache, Stroke, Coordin
 from kiutils.items.brditems import LayerList, LayerAccess
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
-from kiutils.utils.sexpr import SexprAuto
+from kiutils.utils.sexpr import SexprAuto, Rstr
 
 @dataclass
 class GrText():
@@ -252,7 +252,7 @@ class GrRect(SexprAuto, LayerAccess):
     width: Optional[float] = None     # Used for KiCad < 7
     """The ``width`` token defines the line width of the rectangle. (prior to version 7)"""
 
-    fill: Optional[bool] = None
+    fill: Optional[Rstr] = None
     """The optional ``fill`` toke defines how the rectangle is filled. Valid fill types are solid and none. If not defined, the rectangle is not filled"""
 
     layers: Optional[LayerList] = None
@@ -291,7 +291,7 @@ class GrCircle(SexprAuto, LayerAccess):
     width: Optional[float] = None # Used for KiCad < 7
     """The ``width`` token defines the line width of the circle. (prior to version 7)"""
 
-    fill: Optional[bool] = None
+    fill: Optional[Rstr] = None
     """The optional ``fill`` toke defines how the circle is filled. Valid fill types are solid and none. If not defined, the rectangle is not filled"""
 
     layers: Optional[LayerList] = None
@@ -367,7 +367,7 @@ class GrPoly(SexprAuto, LayerAccess):
     width: Optional[float] = None     # Used for KiCad < 7
     """The ``width`` token defines the line width of the polygon. (prior to version 7)"""
 
-    fill: Optional[bool] = None
+    fill: Optional[Rstr] = None
     """The optional ``fill`` toke defines how the polygon is filled. Valid fill types are solid and none. If not defined, the rectangle is not filled"""
 
     layers: Optional[LayerList] = None

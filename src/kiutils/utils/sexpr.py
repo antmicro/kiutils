@@ -201,12 +201,16 @@ class SexprAuto:
         obj = cls()
         positional_idx = 0
         types = get_type_hints(cls)
+        flags = [f.name for f in fields(obj) if types[f.name] == Optional[bool] or types[f.name] == bool]
         for item in exp[1:]:
-            if not isinstance(item, list):
+            if not isinstance(item, list) and positional_idx<len(obj.positional_args):
                 fname = obj.positional_args[positional_idx]
                 f = getattr(obj, fname)
                 setattr(obj, fname, from_sexpr(type(f), item, False))
                 positional_idx += 1
+                continue
+            if isinstance(item, str) and item in flags:
+                setattr(obj, item, True)
                 continue
             for f in fields(obj):
                 ser_name = cls._get_sexpr_name(f)
