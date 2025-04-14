@@ -344,9 +344,18 @@ class GrArc(SexprAuto, LayerAccess):
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier"""
 
+class CoordinateAccess():
+    @property
+    def coordinates(self) -> List[Position]:
+        """Same as ``pts``"""
+        return [cast(Position, i) for i in self.pts]
+
+    @coordinates.setter
+    def coordinates(self, pts: List[Position]) -> None:
+        self.pts =  [cast(Coordinate2D, p) for p in pts]
 
 @dataclass
-class GrPoly(SexprAuto, LayerAccess):
+class GrPoly(SexprAuto, LayerAccess, CoordinateAccess):
     """The ``gr_poly`` token defines a graphic polygon in a footprint definition.
 
     Documentation:
@@ -381,13 +390,9 @@ class GrPoly(SexprAuto, LayerAccess):
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier"""
 
-    @property
-    def coordinates(self) -> List[Position]:
-        """Same as ``pts``"""
-        return [cast(Position, i) for i in self.pts]
 
 @dataclass
-class GrCurve(SexprAuto, LayerAccess):
+class GrCurve(SexprAuto, LayerAccess, CoordinateAccess):
     """The ``gr_curve`` token defines a graphic Cubic Bezier curve in a footprint definition.
 
     Documentation:
@@ -417,9 +422,4 @@ class GrCurve(SexprAuto, LayerAccess):
 
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier"""
-
-    @property
-    def coordinates(self) -> List[Position]:
-        """Same as ``pts``"""
-        return [cast(Position, i) for i in self.pts]
 
