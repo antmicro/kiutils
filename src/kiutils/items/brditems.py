@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, List, ClassVar, Dict, Self
 
-from kiutils.items.common import Position
+from kiutils.items.common import Position, PositionEnd, PositionStart
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
 from kiutils.utils.sexpr import SexprAuto, Rstr
@@ -721,27 +721,27 @@ class SetupData():
 
 
 @dataclass
-class Segment(LayerAccess):
+class Segment(SexprAuto, LayerAccess):
     """The ``segment`` token defines a track segment in a KiCad board
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/#_track_segment
     """
-
-    start: Position = field(default_factory=lambda: Position())
+    sexpr_prefix: ClassVar[List[str]] = ["segment"]
+    start: PositionStart = field(default_factory=lambda: PositionStart())
     """The ``start`` token defines the coordinates of the beginning of the line"""
 
-    end: Position = field(default_factory=lambda: Position())
+    end: PositionEnd = field(default_factory=lambda: PositionEnd())
     """The ``end`` token defines the coordinates of the end of the line"""
 
     width: float = 0.1
     """The ``width`` token defines the line width"""
 
+    locked: Optional[bool] = None
+    """The ``locked`` token defines if the line cannot be edited"""
+
     layers: LayerList = field(default_factory=lambda: LayerList(["F.Cu"]))
     """The ``layer`` token defines the canonical layer the track segment resides on"""
-
-    locked: bool = False
-    """The ``locked`` token defines if the line cannot be edited"""
 
     solder_mask_margin: Optional[float]=None
     """Solder mask opening width of track"""
@@ -750,57 +750,8 @@ class Segment(LayerAccess):
     """The ``net`` token defines by the net ordinal number which net in the net
     section that the segment is part of"""
     
-    uuid: Optional[str] =""
+    uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier"""
-
-
-    @classmethod
-    def from_sexpr(cls, exp: list) -> Segment:
-        """Convert the given S-Expresstion into a Segment object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(segment ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not segment
-
-        Returns:
-            - Segment: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != 'segment':
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-        for item in exp:
-            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
-            if item[0] == 'start': object.start = Position().from_sexpr(item)
-            if item[0] == 'end': object.end = Position().from_sexpr(item)
-            if item[0] == 'width': object.width = item[1]
-            if item[0] in LayerList.sexpr_prefix: object.layers = LayerList.from_sexpr(item)
-            if item[0] == 'solder_mask_margin': object.solder_mask_margin = item[1]
-            if item[0] == 'net': object.net = item[1]
-            if item[0] == 'uuid': object.uuid = item[1]
-        return object
-
-    def to_sexpr(self, indent=2, newline=True) -> str:
-        """Generate the S-Expression representing this object
-
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 2.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-        locked = '( locked yes )' if self.locked else ''
-
-        return f'{indents}(segment (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (width {self.width}){locked}{sexpr.maybe_to_sexpr([self.layers, (self.solder_mask_margin, "solder_mask_margin")])} (net {self.net}) (uuid "{dequote(self.uuid)}")){endline}'
 
 
 @dataclass

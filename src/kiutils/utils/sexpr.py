@@ -71,7 +71,10 @@ def parse_bool(arr: List[str]) -> bool:
 
 def val_to_str(val: Any, typ=None) -> str:
     if hasattr(typ, "to_sexpr"):
-        return typ(**val.__dict__).to_sexpr()
+        if isinstance(val, list):
+            return typ.to_sexpr(val)
+        else:
+            return typ(**val.__dict__).to_sexpr()
     if hasattr(val, "to_sexpr"):
         return val.to_sexpr()
     if (
@@ -106,12 +109,7 @@ def val_to_str(val: Any, typ=None) -> str:
         return ret
     if isinstance(val, float):
         return f"{round(val,6):.6f}".rstrip("0").rstrip(".")
-    if (
-        isinstance(val, int)
-        or isinstance(val, Rstr)
-        or isinstance(val, bytes)
-        or typ == Rstr
-    ):
+    if isinstance(val, (int, Rstr, bytes)) or typ == Rstr:
         return str(val)
     if isinstance(val, str):
         val = val.replace('"', '\\"')
@@ -286,7 +284,12 @@ class SexprAuto:
             and len(val) == 0
         ):
             return Rstr(f"({ser_name})")
-        if hasattr(val, "to_sexpr") or no_name or f.metadata.get("flatten", False):
+        if (
+            hasattr(val, "to_sexpr")
+            or hasattr(val_type, "to_sexpr")
+            or no_name
+            or f.metadata.get("flatten", False)
+        ):
             return (val, val_type)
         return (val, ser_name, val_type)
 
