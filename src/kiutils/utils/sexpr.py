@@ -69,9 +69,19 @@ def parse_bool(arr: List[str]) -> bool:
         return False
 
 
-def val_to_str(val: Any) -> str:
+def val_to_str(val: Any, typ=None) -> str:
+    if hasattr(typ, "to_sexpr"):
+        return typ(**val.__dict__).to_sexpr()
     if hasattr(val, "to_sexpr"):
         return val.to_sexpr()
+    if (
+        typ
+        and val is not None
+        and get_origin(typ) is Union
+        and type(None) in get_args(typ)
+    ):
+        # Optional[..]
+        return val_to_str(val, [i for i in get_args(typ) if not type(None) == i][0])
     if isinstance(val, bool):
         if val:
             return "yes"
@@ -80,8 +90,9 @@ def val_to_str(val: Any) -> str:
 
     if isinstance(val, list):
         ret = ""
+        t = get_args(typ)[0] if typ else None
         for elem in val:
-            ret += maybe_to_sexpr(elem)
+            ret += maybe_to_sexpr(elem, typ=t)
         return ret
     if isinstance(val, dict):
         ret = ""
@@ -95,7 +106,12 @@ def val_to_str(val: Any) -> str:
         return ret
     if isinstance(val, float):
         return f"{round(val,6):.6f}".rstrip("0").rstrip(".")
-    if isinstance(val, int) or isinstance(val, Rstr) or isinstance(val, bytes):
+    if (
+        isinstance(val, int)
+        or isinstance(val, Rstr)
+        or isinstance(val, bytes)
+        or typ == Rstr
+    ):
         return str(val)
     if isinstance(val, str):
         val = val.replace('"', '\\"')
@@ -104,14 +120,20 @@ def val_to_str(val: Any) -> str:
     return ""
 
 
-def maybe_to_sexpr(val: Any, name: str = "", indent=1, newline=False) -> str:
+def maybe_to_sexpr(val: Any, name: str = "", indent=1, newline=False, typ=None) -> str:
     if val is None:
         return ""
 
     if isinstance(val, tuple):
-        v = maybe_to_sexpr(val[0], val[1])
+        if not isinstance(val[1], str):
+            v = maybe_to_sexpr(val[0], typ=val[1])
+        elif len(val) == 3:
+            v = maybe_to_sexpr(val[0], val[1], typ=val[2])
+        else:
+            v = maybe_to_sexpr(val[0], val[1])
+
     else:
-        v = val_to_str(val)
+        v = val_to_str(val, typ)
 
     if v == "":
         return ""
@@ -201,9 +223,13 @@ class SexprAuto:
         obj = cls()
         positional_idx = 0
         types = get_type_hints(cls)
-        flags = [f.name for f in fields(obj) if types[f.name] == Optional[bool] or types[f.name] == bool]
+        flags = [
+            f.name
+            for f in fields(obj)
+            if types[f.name] == Optional[bool] or types[f.name] == bool
+        ]
         for item in exp[1:]:
-            if not isinstance(item, list) and positional_idx<len(obj.positional_args):
+            if not isinstance(item, list) and positional_idx < len(obj.positional_args):
                 fname = obj.positional_args[positional_idx]
                 f = getattr(obj, fname)
                 setattr(obj, fname, from_sexpr(type(f), item, False))
@@ -237,7 +263,9 @@ class SexprAuto:
                     and type(None) in get_args(ftype)
                     and item[0]
                     in getattr(
-                        [i for i in get_args(ftype) if not type(None) == i][0], PFIELD, []
+                        [i for i in get_args(ftype) if not type(None) == i][0],
+                        PFIELD,
+                        [],
                     )
                 ):
                     setattr(obj, f.name, from_sexpr(ftype, item))
@@ -249,6 +277,8 @@ class SexprAuto:
         self, f: Field, no_name: bool
     ) -> Union[Tuple[Any, str], Any]:
         val = getattr(self, f.name)
+        types = get_type_hints(self.__class__)
+        val_type = types[f.name]
         ser_name = self._get_sexpr_name(f)
         if (
             f.metadata.get("force_empty", False)
@@ -257,8 +287,8 @@ class SexprAuto:
         ):
             return Rstr(f"({ser_name})")
         if hasattr(val, "to_sexpr") or no_name or f.metadata.get("flatten", False):
-            return val
-        return (val, ser_name)
+            return (val, val_type)
+        return (val, ser_name, val_type)
 
     def to_sexpr(self, indent=0, newline=False) -> str:
         """Generate the S-Expression representing this object
