@@ -61,9 +61,9 @@ def parse_sexp(sexp):
     return out[0]
 
 
-def parse_bool(arr: List[str]) -> bool:
+def parse_bool(arr: List[str] | str) -> bool:
     # KiCad8 syntax uses `(key "yes")`, but KiCad7 may use `(key "true")` or `key`
-    if len(arr) == 1 or arr[1] == "yes" or arr[1] == "true":
+    if isinstance(arr, str) or len(arr) == 1 or arr[1] == "yes" or arr[1] == "true":
         return True
     else:
         return False

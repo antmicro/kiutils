@@ -388,12 +388,12 @@ class Symbol():
         for item in exp[2:]:
             if item[0] == 'extends': object.extends = item[1]
             if item[0] == 'pin_numbers':
-                if item[1][0] == 'hide': object.hidePinNumbers = sexpr.parse_bool(item[1])
+                if item[1] == 'hide' or item[1][0] == 'hide': object.hidePinNumbers = sexpr.parse_bool(item[1])
             if item[0] == 'pin_names':
                 object.pinNames = True
                 for property in item[1:]:
                     if property[0] == 'offset': object.pinNamesOffset = property[1]
-                    elif property[0] == 'hide': object.pinNamesHide = sexpr.parse_bool(property)
+                    elif property == 'hide' or property[0] == 'hide': object.pinNamesHide = sexpr.parse_bool(property)
             if item[0] == 'in_bom': object.inBom = sexpr.parse_bool(item)
             if item[0] == 'on_board': object.onBoard = sexpr.parse_bool(item)
             if item[0] == 'power': object.isPower = True
