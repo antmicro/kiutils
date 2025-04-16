@@ -165,6 +165,11 @@ class Board():
             if item[0] == 'table': object.tables.append(PCBTable.from_sexpr(item))
 
         assert str(object.version) >= KICAD_VERSION_MINIMAL_PCB, "kiutils supports only KiCad8+ files"
+        if str(object.version) == KICAD_VERSION_MINIMAL_PCB and object.setup.plotSettings:
+            object.setup.plotSettings.plotReference = None
+            object.setup.plotSettings.plotValue = None
+            object.setup.plotSettings.plotInvisibleText = None
+
         return object
 
     @classmethod
