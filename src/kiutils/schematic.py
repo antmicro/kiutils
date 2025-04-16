@@ -23,7 +23,7 @@ from kiutils.items.common import Image, PageSettings, TitleBlock, EmbeddedFiles
 from kiutils.items.schitems import *
 from kiutils.symbol import Symbol, SchematicLibSymbol
 from kiutils.utils import sexpr
-from kiutils.misc.config import KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_VERSION_STR_SCH, KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+from kiutils.misc.config import *
 
 GraphicalItem = Union[Connection, PolyLine, Arc, Circle, Rectangle, Text, TextBox, Junction, NoConnect, BusEntry, Image, SchBezier]
 
@@ -35,13 +35,13 @@ class Schematic():
         https://dev-docs.kicad.org/en/file-formats/sexpr-schematic/
     """
 
-    version: str = KIUTILS_CREATE_NEW_VERSION_STR_SCH
+    version: str = KICAD_VERSION_SAVE_SCH
     """The ``version`` token attribute defines the schematic version using the YYYYMMDD date format"""
 
     generator: str = KIUTILS_CREATE_NEW_GENERATOR_STR
     """The ``generator`` token attribute defines the program used to write the file"""
 
-    generatorVersion : str = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+    generatorVersion : str = KICAD_GENERATOR_VERSION_SAVE
     """The ``generatorVersion`` token attribute defines the program version used to write the file"""
 
     uuid: Optional[str] = None
@@ -173,7 +173,7 @@ class Schematic():
             if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
             if item[0] == 'table': object.tables.append(SchTable.from_sexpr(item))
                     
-        assert str(object.version) >= KIUTILS_CREATE_NEW_VERSION_STR_SCH, "kiutils supports only KiCad8+ files"
+        assert str(object.version) >= KICAD_VERSION_MINIMAL_SCH, "kiutils supports only KiCad8+ files"
         return object
 
     @classmethod
@@ -208,9 +208,9 @@ class Schematic():
             - Schematic: Empty schematic
         """
         schematic = cls(
-            version = KIUTILS_CREATE_NEW_VERSION_STR_SCH,
+            version = KICAD_VERSION_SAVE_SCH,
             generator = KIUTILS_CREATE_NEW_GENERATOR_STR,
-            generatorVersion = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+            generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         )
         schematic.sheetInstances.append(HierarchicalSheetInstance(instancePath='/', page='1'))
         return schematic
@@ -232,6 +232,8 @@ class Schematic():
                 raise Exception("File path not set")
             filepath = self.filePath
 
+        self.version = KICAD_VERSION_SAVE_SCH
+        self.generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         with open(filepath, 'w', encoding=encoding) as outfile:
             outfile.write(self.to_sexpr())
 

@@ -24,7 +24,7 @@ from kiutils.items.syitems import *
 from kiutils.items.schitems import SchBezier
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote
-from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_SCH,KIUTILS_CREATE_NEW_GENERATOR_STR,KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+from kiutils.misc.config import *
 
 @dataclass
 class SymbolAlternativePin():
@@ -576,13 +576,13 @@ class SymbolLib():
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-symbol-lib/
     """
-    version: str = KIUTILS_CREATE_NEW_VERSION_STR_SCH
+    version: str = KICAD_VERSION_SAVE_SCH
     """The ``version`` token attribute defines the symbol library version using the YYYYMMDD date format"""
 
     generator: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_STR
     """The ``generator`` token attribute defines the program used to write the file"""
 
-    generatorVersion: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+    generatorVersion: Optional[str] = KICAD_GENERATOR_VERSION_SAVE
     """The ``generatorVersion`` token attribute defines the program version used to write the file"""
 
     symbols: List[Symbol] = field(default_factory=list)
@@ -613,7 +613,7 @@ class SymbolLib():
 
         with open(filepath, 'r', encoding=encoding) as infile:
             item = cls.from_sexpr(sexpr.parse_sexp(infile.read()))
-            assert str(item.version) >= KIUTILS_CREATE_NEW_VERSION_STR_SCH, "kiutils supports only KiCad8+ files"
+            assert str(item.version) >= KICAD_VERSION_MINIMAL_SCH, "kiutils supports only KiCad8+ files"
             item.filePath = filepath
             return item
 
@@ -664,6 +664,8 @@ class SymbolLib():
                 raise Exception("File path not set")
             filepath = self.filePath
 
+        self.version = KICAD_VERSION_SAVE_SCH
+        self.generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         with open(filepath, 'w', encoding=encoding) as outfile:
             outfile.write(self.to_sexpr())
 

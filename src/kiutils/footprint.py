@@ -28,7 +28,7 @@ from kiutils.items.brditems import Teardrops, PadStack
 from kiutils.items.dimensions import *
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote
-from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_PCB, KIUTILS_CREATE_NEW_GENERATOR_STR,KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+from kiutils.misc.config import *
 
 @dataclass
 class Attributes():
@@ -1008,9 +1008,9 @@ class Footprint():
             raise Exception("Unsupported type was given")
 
         fp = cls(
-            version = KIUTILS_CREATE_NEW_VERSION_STR_PCB,
+            version = KICAD_VERSION_SAVE_PCB,
             generator = KIUTILS_CREATE_NEW_GENERATOR_STR,
-            generatorVersion = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+            generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         )
         fp.libId = library_id
 
@@ -1058,6 +1058,8 @@ class Footprint():
                 raise Exception("File path not set")
             filepath = self.filePath
 
+        self.version = KICAD_VERSION_SAVE_PCB
+        self.generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         with open(filepath, 'w', encoding=encoding) as outfile:
             outfile.write(self.to_sexpr())
 
