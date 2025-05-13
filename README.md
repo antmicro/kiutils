@@ -25,6 +25,10 @@ files when the Python script ran.
 Parsing of the files is based on the S-Expression parser found in this library:
 [GitLab: KiCad Library utilities](https://gitlab.com/kicad/libraries/kicad-library-utils)
 
+> [!NOTE]
+>
+> `kiutils` is able to open KiCad 8+ files, but saved files will be migrated to latest supported version (KiCad 9) 
+
 ## Prerequisites
 The following is required to use `kiutils`:
 - Python 3.7 or higher
