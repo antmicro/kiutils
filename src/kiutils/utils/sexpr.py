@@ -273,7 +273,7 @@ class SexprAuto:
 
     def _sexpr_inter_tuple(
         self, f: Field, no_name: bool
-    ) -> Union[Tuple[Any, str], Any]:
+    ) -> Union[Rstr, Tuple[Any, Any], Tuple[Any, str, Any]]:
         val = getattr(self, f.name)
         types = get_type_hints(self.__class__)
         val_type = types[f.name]
