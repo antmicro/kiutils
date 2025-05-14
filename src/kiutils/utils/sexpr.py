@@ -284,6 +284,12 @@ class SexprAuto:
             and len(val) == 0
         ):
             return Rstr(f"({ser_name})")
+
+        precision = f.metadata.get("precision", None)
+        if precision and isinstance(val, float):
+            val = Rstr(f"{val:.{precision}f}")
+            val_type = Rstr
+
         if (
             hasattr(val, "to_sexpr")
             or hasattr(val_type, "to_sexpr")

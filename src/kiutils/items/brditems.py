@@ -484,20 +484,11 @@ class PlotSettings(SexprAuto):
     """The ``createGerberJobFile`` token defines if a job file should be created when plotting 
     gerber files"""
 
-    # FIXME: Where is the docu of this token?
-    dashedLineDashRatio: Optional[float] = None
-    """The ``dashedLineDashRatio`` token's documentation is still missing ..
-    
-    Available and required since KiCad v7"""
+    dashedLineDashRatio: float = field( default=12, metadata={"case": "snake", "precision": 6})
+    """The ``dashedLineDashRatio`` defines dash size of dashed line (dash length is `dashedLineDashRatio` * 0.05mm)"""
 
-    # FIXME: Where is the docu of this token?
-    dashedLineGapRatio: Optional[float] = None
-    """The ``dashedLineGapRatio`` token's documentation is still missing ..
-    
-    Available and required since KiCad v7"""
-
-    dashed_line_dash_ratio: float = 12
-    dashed_line_gap_ratio: float = 3
+    dashedLineGapRatio: float = field( default=3, metadata={"case": "snake", "precision": 6})
+    """The ``dashedLineGapRatio`` defines gap size of dashed line (gap length is `dashedLineGapRatio` * 0.05mm)"""
 
     svgUseInch: Optional[bool] = None
     """The ``svgUseInch`` token defines if inch units should be use when plotting SVG files.
@@ -531,7 +522,7 @@ class PlotSettings(SexprAuto):
     hpglPenSpeed: int = 0
     """The ``hpglPenSpeed`` token defines the integer pen speed used for HPGL plots"""
 
-    hpglPenDiameter: float = 0.0
+    hpglPenDiameter: float = field(default=0.0, metadata={"precision": 6})
     """The ``hpglPenDiameter`` token defines the floating point pen size for HPGL plots"""
 
     pdfFrontFpPropertyPopups: bool = field(default=False, metadata={"case": "snake"})
@@ -1281,4 +1272,3 @@ class PadStack(SexprAuto):
     sexpr_prefix: ClassVar[List[str]]= ["padstack"]
     mode: Optional[Rstr]=None
     layers: Dict[str, PadStackLayer] = field(default_factory=dict, metadata={"flatten":True})
-
