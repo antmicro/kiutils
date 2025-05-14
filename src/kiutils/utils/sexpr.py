@@ -7,15 +7,17 @@ from typing import (
     List,
     Any,
     Union,
+    Dict,
     Tuple,
     ClassVar,
     Self,
     Optional,
     get_args,
     get_origin,
-    get_type_hints,
+    get_type_hints as tp_get_type_hints,
 )
 from dataclasses import fields, Field
+from functools import lru_cache
 
 dbg = False
 PFIELD = "sexpr_prefix"
@@ -29,6 +31,9 @@ term_regex = r"""(?mx)
         (?P<s>[^(^)\s]+)
        )"""
 
+@lru_cache(maxsize=256)
+def get_type_hints(cls) -> Dict[str, Any]:
+    return tp_get_type_hints(cls)
 
 def parse_sexp(sexp):
     stack = []
