@@ -194,10 +194,6 @@ class ColorRGBA():
     A: float = 0
     """The ``A`` token defines the alpha channel of the color"""
 
-    precision: Optional[int] = None
-    """Wether the output of ``to_sexpr()`` should have a set number of precision after the decimal
-    point of the ``self.A`` attribute"""
-
     @classmethod
     def from_sexpr(cls, exp: list) -> ColorRGBA:
         """Convert the given S-Expresstion into a ColorRGBA object
@@ -225,7 +221,9 @@ class ColorRGBA():
         object.A = exp[4]
         return object
 
-    def to_sexpr(self, indent=0, newline=False) -> str:
+    def to_sexpr(
+        self, indent=0, newline=False, precision: Optional[float] = None
+    ) -> str:
         """Generate the S-Expression representing this object
 
         Args:
@@ -238,12 +236,13 @@ class ColorRGBA():
         indents = ' '*indent
         endline = '\n' if newline else ''
 
-        if self.precision is not None:
-            alpha = f'{self.A:.{self.precision}f}'
+        if precision is not None:
+            alpha = f'{self.A:.{precision}f}'
         else:
             alpha = f'{self.A}'
 
         return f'{indents}(color {self.R} {self.G} {self.B} {alpha}){endline}'
+
 
 @dataclass
 class Stroke():
@@ -477,12 +476,13 @@ class Justify():
         return expression
 
 @dataclass
-class Effects():
+class Effects(SexprAuto):
     """All text objects can have an optional effects section that defines how the text is displayed.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/#_text_effects
     """
+    sexpr_prefix: ClassVar[List[str]] = ["effects"]
 
     font: Font = field(default_factory=lambda: Font())
     """The ``font`` token defines how the text is shown"""
@@ -498,23 +498,23 @@ class Effects():
 
     Available since KiCad v7"""
 
-    @classmethod
-    def from_sexpr(cls, exp: list) -> Effects:
-        """Convert the given S-Expression into a Effects object
+    # @classmethod
+    # def from_sexpr(cls, exp: list) -> Effects:
+    #     """Convert the given S-Expression into a Effects object
 
-        Args:
-            - exp (list): Part of parsed S-Expression ``(effects ...)``
+    #     Args:
+    #         - exp (list): Part of parsed S-Expression ``(effects ...)``
 
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not effects
+    #     Raises:
+    #         - Exception: When given parameter's type is not a list
+    #         - Exception: When the first item of the list is not effects
 
-        Returns:
-            - Effects: Object of the class initialized with the given S-Expression
-        """
-        object = cls()
-        object.from_sexpr_update(exp)
-        return object
+    #     Returns:
+    #         - Effects: Object of the class initialized with the given S-Expression
+    #     """
+    #     object = cls()
+    #     object.from_sexpr_update(exp)
+    #     return object
 
     def from_sexpr_update(self, exp: list) -> None:
         """Convert the given S-Expression and update self
@@ -539,25 +539,25 @@ class Effects():
             if item[0] == 'href': self.href = item[1]
 
 
-    def to_sexpr(self, indent=0, newline=True) -> str:
-        """Generate the S-Expression representing this object
+    # def to_sexpr(self, indent=0, newline=True) -> str:
+    #     """Generate the S-Expression representing this object
 
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
+    #     Args:
+    #         - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
+    #         - newline (bool): Adds a newline to the end of the output. Defaults to True.
 
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
+    #     Returns:
+    #         - str: S-Expression of this object
+    #     """
+    #     indents = ' '*indent
+    #     endline = '\n' if newline else ''
 
-        justify = f' {self.justify.to_sexpr()}' if self.justify.to_sexpr() != '' else ''
-        hide = f'{indents}(effects ( hide yes ))\n' if self.hide else ''
-        href = f' (href "{dequote(self.href)}")' if self.href is not None else ''
+    #     justify = f' {self.justify.to_sexpr()}' if self.justify.to_sexpr() != '' else ''
+    #     hide = f'{indents}(effects ( hide yes ))\n' if self.hide else ''
+    #     href = f' (href "{dequote(self.href)}")' if self.href is not None else ''
 
-        expression =  f'{indents}(effects {self.font.to_sexpr()}{justify}{href}){endline}'
-        return hide+expression
+    #     expression =  f'{indents}(effects {self.font.to_sexpr()}{justify}{hide}{href}){endline}'
+    #     return expression
 
 
 @dataclass
@@ -1097,7 +1097,7 @@ class Fill(SexprAuto):
     - ``outline``: Graphic item filled with the line color
     - ``background``: Graphic item filled with the theme background color"""
 
-    color: Optional[ColorRGBA] = None
+    color: Optional[ColorRGBA] = field(default=None, metadata={"precision": 4})
     """The optional ``color`` token defines the color of the filled item.
     Available since KiCad v7"""
 

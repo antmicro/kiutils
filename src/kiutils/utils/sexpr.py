@@ -74,14 +74,14 @@ def parse_bool(arr: List[str] | str) -> bool:
         return False
 
 
-def val_to_str(val: Any, typ=None) -> str:
+def val_to_str(val: Any, typ=None, kwargs: Dict[str, Any]={}) -> str:
     if hasattr(typ, "to_sexpr"):
         if isinstance(val, list):
-            return typ.to_sexpr(val)
+            return typ.to_sexpr(val, **kwargs)
         else:
-            return typ(**val.__dict__).to_sexpr()
+            return typ(**val.__dict__).to_sexpr(**kwargs)
     if hasattr(val, "to_sexpr"):
-        return val.to_sexpr()
+        return val.to_sexpr(**kwargs)
     if (
         typ
         and val is not None
@@ -123,20 +123,22 @@ def val_to_str(val: Any, typ=None) -> str:
     return ""
 
 
-def maybe_to_sexpr(val: Any, name: str = "", indent=1, newline=False, typ=None) -> str:
+def maybe_to_sexpr(val: Any, name: str = "", indent=1, newline=False, typ=None, kwargs: Dict[str, Any]={}) -> str:
     if val is None:
         return ""
 
     if isinstance(val, tuple):
         if not isinstance(val[1], str):
-            v = maybe_to_sexpr(val[0], typ=val[1])
+            v = maybe_to_sexpr(val[0], typ=val[1], kwargs=val[2])
+        elif len(val) == 4:
+            v = maybe_to_sexpr(val[0], val[1], typ=val[2], kwargs=val[3])
         elif len(val) == 3:
             v = maybe_to_sexpr(val[0], val[1], typ=val[2])
         else:
             v = maybe_to_sexpr(val[0], val[1])
 
     else:
-        v = val_to_str(val, typ)
+        v = val_to_str(val, typ, kwargs)
 
     if v == "":
         return ""
@@ -278,7 +280,7 @@ class SexprAuto:
 
     def _sexpr_inter_tuple(
         self, f: Field, no_name: bool
-    ) -> Union[Rstr, Tuple[Any, Any], Tuple[Any, str, Any]]:
+    ) -> Union[Rstr, Tuple[Any, Any, Dict[str, Any]], Tuple[Any, str, Any, Dict[str, Any]]]:
         val = getattr(self, f.name)
         types = get_type_hints(self.__class__)
         val_type = types[f.name]
@@ -294,15 +296,15 @@ class SexprAuto:
         if precision and isinstance(val, float):
             val = Rstr(f"{val:.{precision}f}")
             val_type = Rstr
-
+        meta = {k:v for k,v in f.metadata.items() if k not in ["force_empty", "flatten", "case", "alias"]}
         if (
             hasattr(val, "to_sexpr")
             or hasattr(val_type, "to_sexpr")
             or no_name
             or f.metadata.get("flatten", False)
         ):
-            return (val, val_type)
-        return (val, ser_name, val_type)
+            return (val, val_type, meta)
+        return (val, ser_name, val_type, meta)
 
     def to_sexpr(self, indent=0, newline=False) -> str:
         """Generate the S-Expression representing this object
