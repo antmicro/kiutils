@@ -15,22 +15,20 @@ Documentation taken from:
 
 from __future__ import annotations
 
-import calendar
-import datetime
 import re
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict
+from typing import Optional, List
 from os import path
 
 from kiutils.items.zones import Zone
-from kiutils.items.common import Image, Position, Coordinate, Net, Group, Font
+from kiutils.items.common import Image, Position, Coordinate, Net, Group, Font, EmbeddedFiles, PCBTable
 from kiutils.items.fpitems import *
 from kiutils.items.gritems import *
-from kiutils.items.brditems import Teardrops
+from kiutils.items.brditems import Teardrops, PadStack
 from kiutils.items.dimensions import *
 from kiutils.utils import sexpr
-from kiutils.utils.strings import dequote, remove_prefix
-from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_PCB, KIUTILS_CREATE_NEW_GENERATOR_STR,KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+from kiutils.utils.strings import dequote
+from kiutils.misc.config import *
 
 @dataclass
 class Attributes():
@@ -437,6 +435,9 @@ class Pad():
     uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier. Defaults to ``None.``"""
 
+    padstack: Optional[PadStack]= None
+    """Defines pad pattern on different layers"""
+
     pinFunction: Optional[str] = None
     """The optional ``pinFunction`` token attribute defines the associated schematic symbol pin name"""
 
@@ -554,7 +555,7 @@ class Pad():
             if item[0] == 'die_length': object.dieLength = item[1]
             if item[0] == 'solder_mask_margin': object.solderMaskMargin = item[1]
             if item[0] == 'solder_paste_margin': object.solderPasteMargin = item[1]
-            if item[0] == 'solder_paste_margin_ratio': object.solderPasteMarginRatio = item[1]
+            if item[0] in ['solder_paste_margin_ratio', 'solder_paste_ratio']: object.solderPasteMarginRatio = item[1]
             if item[0] == 'clearance': object.clearance = item[1]
             if item[0] == 'zone_connect': object.zoneConnect = item[1]
             if item[0] == 'thermal_bridge_width': object.thermalBridgeWidth = item[1]
@@ -565,6 +566,7 @@ class Pad():
                 for layer in item[1:]:
                     object.zoneLayerConnections.append(layer)
             if item[0] == 'options': object.customPadOptions = PadOptions().from_sexpr(item)
+            if item[0] == 'padstack': object.padstack = PadStack.from_sexpr(item)
             if item[0] == 'primitives':
                 object.customPadPrimitives = []
                 for primitive in item[1:]:
@@ -678,8 +680,14 @@ class Pad():
                 expression += f'\n{primitive.to_sexpr(newline=False,indent=indent+4)}'
             expression += f'\n{indents}  )'
 
-        expression += f'{uuid}){endline}'
+        expression += f'{uuid}{sexpr.maybe_to_sexpr(self.padstack)}){endline}'
         return expression
+
+@dataclass
+class ComponentClass(SexprAuto):
+    sexpr_prefix: ClassVar[List[str]] = ["class"]
+    positional_args : ClassVar[List[str]] = ["text"]
+    text: str = ""
 
 @dataclass
 class Footprint():
@@ -856,11 +864,23 @@ class Footprint():
     """The ``filePath`` token defines the path-like string to the library file. Automatically set when
     ``self.from_file()`` is used. Allows the use of ``self.to_file()`` without parameters."""
 
+    componentClass: List[ComponentClass] = field(default_factory=list)
+    """Component classes assigned to associated symbol"""
+
     sheetname: Optional[str] = None
     """Indicates in which schematic sheet was linked symbol added"""
 
     sheetfile: Optional[str] = None
     """Indicates in which schematic file was linked symbol added"""
+
+    embeddedFonts: Optional[bool] = None
+    """The ``embeddedFonts`` indicates that there are fonts embedded into this component"""
+
+    embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
+    """The ``embeddedFiles`` store data of embedded files"""
+
+    tables: List[PCBTable] = field(default_factory=list)
+    """Defines list of tables and their contents"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Footprint:
@@ -902,7 +922,7 @@ class Footprint():
             if item[0] == 'autoplace_cost180': object.autoplaceCost180 = item[1]
             if item[0] == 'solder_mask_margin': object.solderMaskMargin = item[1]
             if item[0] == 'solder_paste_margin': object.solderPasteMargin = item[1]
-            if item[0] == 'solder_paste_ratio': object.solderPasteRatio = item[1]
+            if item[0] in ['solder_paste_margin_ratio', 'solder_paste_ratio']: object.solderPasteRatio = item[1]
             if item[0] == 'clearance': object.clearance = item[1]
             if item[0] == 'zone_connect': object.zoneConnect = item[1]
             if item[0] == 'thermal_width': object.thermalWidth = item[1]
@@ -924,6 +944,9 @@ class Footprint():
             if item[0] == 'group': object.groups.append(Group.from_sexpr(item))
             if item[0] == 'sheetname': object.sheetname = item[1]
             if item[0] == 'sheetfile': object.sheetfile = item[1]
+            if item[0] == 'component_classes':
+                for i in item[1:]:
+                    object.componentClass.append(ComponentClass.from_sexpr(i))
             if item[0] == 'private_layers':
                 for layer in item[1:]:
                     object.privateLayers.append(layer)
@@ -931,6 +954,9 @@ class Footprint():
                 for layer in item[1:]:
                     object.netTiePadGroups.append(layer)
             if item[0] == 'dimension': object.graphicItems.append(Dimension.from_sexpr(item))
+            if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
+            if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
+            if item[0] == 'table': object.tables.append(PCBTable.from_sexpr(item))
 
         return object
 
@@ -982,9 +1008,9 @@ class Footprint():
             raise Exception("Unsupported type was given")
 
         fp = cls(
-            version = KIUTILS_CREATE_NEW_VERSION_STR_PCB,
+            version = KICAD_VERSION_SAVE_PCB,
             generator = KIUTILS_CREATE_NEW_GENERATOR_STR,
-            generatorVersion = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+            generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         )
         fp.libId = library_id
 
@@ -1032,6 +1058,8 @@ class Footprint():
                 raise Exception("File path not set")
             filepath = self.filePath
 
+        self.version = KICAD_VERSION_SAVE_PCB
+        self.generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         with open(filepath, 'w', encoding=encoding) as outfile:
             outfile.write(self.to_sexpr())
 
@@ -1069,6 +1097,23 @@ class Footprint():
         if self.tags is not None:
             expression += f'{indents}  (tags "{dequote(self.tags)}")\n'
 
+        if self.privateLayers:
+            expression += f'{indents}  (private_layers'
+            for item in self.privateLayers:
+                expression += f' "{dequote(item)}"'
+            expression += f')\n'   
+
+        expression += sexpr.maybe_to_sexpr([p for p in self.properties if p.key != "ki_fp_filters"], indent=indent+2)
+        expression += sexpr.maybe_to_sexpr(self.componentClass, "component_classes", indent=indent+2)
+        expression += sexpr.maybe_to_sexpr([p for p in self.properties if p.key == "ki_fp_filters"], indent=indent+2)
+
+        if self.path is not None:
+            expression += f'{indents}  (path "{dequote(self.path)}")\n'
+        if self.sheetname is not None:
+            expression += f'{indents}  (sheetname "{self.sheetname}")\n'
+        if self.sheetfile is not None:
+            expression += f'{indents}  (sheetfile "{self.sheetfile}")\n'
+
         # Additional parameters used in board
         if self.autoplaceCost90 is not None:
             expression += f'{indents}  (autoplace_cost90 {self.autoplaceCost90})\n'
@@ -1078,6 +1123,8 @@ class Footprint():
             expression += f'{indents}  (solder_mask_margin {self.solderMaskMargin})\n'
         if self.solderPasteMargin is not None:
             expression += f'{indents}  (solder_paste_margin {self.solderPasteMargin})\n'
+        if self.solderPasteRatio is not None:
+            expression += f'{indents}  (solder_paste_margin_ratio {self.solderPasteRatio})\n'
         if self.clearance is not None:
             expression += f'{indents}  (clearance {self.clearance})\n'
         if self.zoneConnect is not None:
@@ -1086,22 +1133,6 @@ class Footprint():
             expression += f'{indents}  (thermal_width {self.thermalWidth})\n'
         if self.thermalGap is not None:
             expression += f'{indents}  (thermal_gap {self.thermalGap})\n'
-
-        if self.privateLayers:
-            expression += f'{indents}  (private_layers'
-            for item in self.privateLayers:
-                expression += f' "{dequote(item)}"'
-            expression += f')\n'   
-        for item in self.properties:
-            expression += item.to_sexpr(indent=indent+2)
-        if self.path is not None:
-            expression += f'{indents}  (path "{dequote(self.path)}")\n'
-        if self.sheetname is not None:
-            expression += f'{indents}  (sheetname "{self.sheetname}")\n'
-        if self.sheetfile is not None:
-            expression += f'{indents}  (sheetfile "{self.sheetfile}")\n'
-        if self.solderPasteRatio is not None:
-            expression += f'{indents}  (solder_paste_ratio {self.solderPasteRatio})\n'
         if self.attributes is not None:
             # Note: If the attribute object has only standard values in it, it will return an
             #       empty string. Therefore, it should create its own newline and indentations only
@@ -1114,12 +1145,18 @@ class Footprint():
             expression += f')\n'
         for item in self.graphicItems:
             expression += item.to_sexpr(indent=indent+2)
+        if self.tables:
+            expression += '\n'
+            for item in self.tables:
+                expression += item.to_sexpr(indent+2)
         for item in self.pads:
             expression += item.to_sexpr(indent=indent+2)
         for item in self.zones:
             expression += item.to_sexpr(indent=indent+2)
         for item in self.groups:
             expression += item.to_sexpr(indent=indent+2)
+        expression += sexpr.maybe_to_sexpr((self.embeddedFonts, "embedded_fonts"), indent=indent+2)
+        expression += self.embeddedFiles.to_sexpr(indent=indent+2)
         for item in self.models:
             expression += item.to_sexpr(indent=indent+2)
 

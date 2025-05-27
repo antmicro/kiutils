@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 from os import path
 
-from kiutils.items.common import Group, Image, Net, PageSettings, TitleBlock
+from kiutils.items.common import Group, Image, Net, PageSettings, TitleBlock, EmbeddedFiles, PCBTable
 from kiutils.items.zones import Zone
 from kiutils.items.brditems import *
 from kiutils.items.gritems import *
@@ -27,7 +27,7 @@ from kiutils.items.dimensions import Dimension
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
 from kiutils.footprint import Footprint
-from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_PCB, KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+from kiutils.misc.config import *
 
 @dataclass
 class Board():
@@ -99,6 +99,15 @@ class Board():
     """The ``filePath`` token defines the path-like string to the board file. Automatically set when
     ``self.from_file()`` is used. Allows the use of ``self.to_file()`` without parameters."""
 
+    embeddedFonts: Optional[bool] = None
+    """The ``embeddedFonts`` indicates that there are fonts embedded into this component"""
+
+    embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
+    """The ``embeddedFiles`` store data of embedded files"""
+
+    tables: List[PCBTable] = field(default_factory=list)
+    """Defines list of tables and their contents"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Board:
         """Convert the given S-Expresstion into a Board object
@@ -151,8 +160,16 @@ class Board():
             if item[0] == 'via': object.traceItems.append(Via().from_sexpr(item))
             if item[0] == 'zone': object.zones.append(Zone().from_sexpr(item))
             if item[0] == 'group': object.groups.append(Group().from_sexpr(item))
+            if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
+            if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
+            if item[0] == 'table': object.tables.append(PCBTable.from_sexpr(item))
 
-        assert str(object.version) >= KIUTILS_CREATE_NEW_VERSION_STR_PCB, "kiutils supports only KiCad8+ files"
+        assert str(object.version) >= KICAD_VERSION_MINIMAL_PCB, "kiutils supports only KiCad8+ files"
+        if str(object.version) == KICAD_VERSION_MINIMAL_PCB and object.setup.plotSettings:
+            object.setup.plotSettings.plotReference = None
+            object.setup.plotSettings.plotValue = None
+            object.setup.plotSettings.plotInvisibleText = None
+
         return object
 
     @classmethod
@@ -187,9 +204,9 @@ class Board():
             - Board: Empty board
         """
         board = cls(
-            version = KIUTILS_CREATE_NEW_VERSION_STR_PCB,
+            version = KICAD_VERSION_SAVE_PCB,
             generator = KIUTILS_CREATE_NEW_GENERATOR_STR,
-            generatorVersion = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+            generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         )
 
         # Add all standard layers to board
@@ -247,6 +264,8 @@ class Board():
                 raise Exception("File path not set")
             filepath = self.filePath
 
+        self.version = KICAD_VERSION_SAVE_PCB
+        self.generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         with open(filepath, 'w', encoding=encoding) as outfile:
             outfile.write(self.to_sexpr())
 
@@ -295,10 +314,12 @@ class Board():
         if len(self.graphicItems) > 0:
             addNewLine = True
             for item in self.graphicItems:
-                if isinstance(item, GrPoly):
-                    expression += item.to_sexpr(indent+2, pts_newline=True)
-                else:
-                    expression += item.to_sexpr(indent+2)
+                expression += item.to_sexpr(indent+2)
+
+        if self.tables:
+            expression += '\n'
+            for item in self.tables:
+                expression += item.to_sexpr(indent+2)
 
         # Dimensions
         if len(self.dimensions) > 0:
@@ -331,6 +352,9 @@ class Board():
 
         for gen in self.generated:
             expression += gen.to_sexpr(indent+2)
+
+        expression += sexpr.maybe_to_sexpr((self.embeddedFonts, "embedded_fonts"), indent=indent+2)
+        expression += self.embeddedFiles.to_sexpr(indent=indent+2)
 
         expression += f'{indents}){endline}'
         return expression

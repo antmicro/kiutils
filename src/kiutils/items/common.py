@@ -18,19 +18,22 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, ClassVar
 
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
+from kiutils.utils.sexpr import Rstr, SexprAuto
+
 
 @dataclass
-class Position():
+class Position:
     """The ``position`` token defines the positional coordinates and rotation of an object.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_position_identifier
     """
 
+    sexpr_prefix: ClassVar[List[str]] = ["at"]
     X: float = 0.0
     """The ``X`` attribute defines the horizontal position of the object"""
 
@@ -62,7 +65,6 @@ class Position():
         """
         if not isinstance(exp, list) or len(exp) < 3:
             raise Exception("Expression does not have the correct type")
-
         object = cls()
         object.X = exp[1]
         object.Y = exp[2]
@@ -85,9 +87,45 @@ class Position():
             - newline (bool): Adds a newline to the end of the output. Defaults to False.
 
         Returns:
-            - str: S-Expression of this object  
+            - str: S-Expression of this object
         """
-        return sexpr.maybe_to_sexpr( [self.X, self.Y, self.angle, (self.unlocked, "unlocked")], "at" )
+        return sexpr.maybe_to_sexpr(
+            [self.X, self.Y, self.angle, (self.unlocked, "unlocked")], self.sexpr_prefix[0]
+        )
+
+
+class PositionStart(Position):
+    """Same as ``Position`` class but SerDe with `start` instead `at`."""
+
+    sexpr_prefix: ClassVar[List[str]] = ["start"]
+
+
+class PositionEnd(Position):
+    """Same as ``Position`` class but SerDe with `end` instead `at`."""
+
+    sexpr_prefix: ClassVar[List[str]] = ["end"]
+
+class PositionMid(Position):
+    """Same as ``Position`` class but SerDe with `mid` instead `at`."""
+
+    sexpr_prefix: ClassVar[List[str]] = ["mid"]
+class PositionCenter(Position):
+    """Same as ``Position`` class but SerDe with `center` instead `at`."""
+
+    sexpr_prefix: ClassVar[List[str]] = ["center"]
+
+
+class Coordinate2D(Position):
+    """Same as ``Position`` class but SerDe with `xy` instead `at`."""
+
+    sexpr_prefix: ClassVar[List[str]] = ["xy"]
+
+
+class Size(Position):
+    """Same as ``Position`` class but SerDe with `size` instead `at`."""
+
+    sexpr_prefix: ClassVar[List[str]] = ["size"]
+
 
 @dataclass
 class Coordinate():
@@ -153,12 +191,8 @@ class ColorRGBA():
     B: int = 0
     """The ``B`` token defines the blue channel of the color"""
 
-    A: int = 0
+    A: float = 0
     """The ``A`` token defines the alpha channel of the color"""
-
-    precision: Optional[int] = None
-    """Wether the output of ``to_sexpr()`` should have a set number of precision after the decimal
-    point of the ``self.A`` attribute"""
 
     @classmethod
     def from_sexpr(cls, exp: list) -> ColorRGBA:
@@ -187,7 +221,9 @@ class ColorRGBA():
         object.A = exp[4]
         return object
 
-    def to_sexpr(self, indent=0, newline=False) -> str:
+    def to_sexpr(
+        self, indent=0, newline=False, precision: Optional[float] = None
+    ) -> str:
         """Generate the S-Expression representing this object
 
         Args:
@@ -200,12 +236,13 @@ class ColorRGBA():
         indents = ' '*indent
         endline = '\n' if newline else ''
 
-        if self.precision is not None:
-            alpha = f'{self.A:.{self.precision}f}'
+        if precision is not None:
+            alpha = f'{self.A:.{precision}f}'
         else:
             alpha = f'{self.A}'
 
         return f'{indents}(color {self.R} {self.G} {self.B} {alpha}){endline}'
+
 
 @dataclass
 class Stroke():
@@ -272,7 +309,6 @@ class Stroke():
         color = f' {self.color.to_sexpr()}' if self.color is not None else ''
         the_type = f' (type {self.type})' if self.type is not None else ''
         return f'{indents}(stroke (width {self.width}){the_type}{color}){endline}'
-
 
 
 @dataclass
@@ -440,12 +476,13 @@ class Justify():
         return expression
 
 @dataclass
-class Effects():
+class Effects(SexprAuto):
     """All text objects can have an optional effects section that defines how the text is displayed.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/#_text_effects
     """
+    sexpr_prefix: ClassVar[List[str]] = ["effects"]
 
     font: Font = field(default_factory=lambda: Font())
     """The ``font`` token defines how the text is shown"""
@@ -453,7 +490,7 @@ class Effects():
     justify: Justify = field(default_factory=lambda: Justify())
     """The ``justify`` token defines the justification of the text"""
 
-    hide: bool = False
+    hide: Optional[bool] = None
     """The optional ``hide`` token defines if the text is hidden"""
 
     href: Optional[str] = None
@@ -461,9 +498,26 @@ class Effects():
 
     Available since KiCad v7"""
 
-    @classmethod
-    def from_sexpr(cls, exp: list) -> Effects:
-        """Convert the given S-Expresstion into a Effects object
+    # @classmethod
+    # def from_sexpr(cls, exp: list) -> Effects:
+    #     """Convert the given S-Expression into a Effects object
+
+    #     Args:
+    #         - exp (list): Part of parsed S-Expression ``(effects ...)``
+
+    #     Raises:
+    #         - Exception: When given parameter's type is not a list
+    #         - Exception: When the first item of the list is not effects
+
+    #     Returns:
+    #         - Effects: Object of the class initialized with the given S-Expression
+    #     """
+    #     object = cls()
+    #     object.from_sexpr_update(exp)
+    #     return object
+
+    def from_sexpr_update(self, exp: list) -> None:
+        """Convert the given S-Expression and update self
 
         Args:
             - exp (list): Part of parsed S-Expression ``(effects ...)``
@@ -471,9 +525,6 @@ class Effects():
         Raises:
             - Exception: When given parameter's type is not a list
             - Exception: When the first item of the list is not effects
-
-        Returns:
-            - Effects: Object of the class initialized with the given S-Expression
         """
         if not isinstance(exp, list):
             raise Exception("Expression does not have the correct type")
@@ -481,33 +532,32 @@ class Effects():
         if exp[0] != 'effects':
             raise Exception("Expression does not have the correct type")
 
-        object = cls()
         for item in exp:
-            if item[0] == 'hide': object.hide = sexpr.parse_bool(item) 
-            if item[0] == 'font': object.font = Font().from_sexpr(item)
-            if item[0] == 'justify': object.justify = Justify().from_sexpr(item)
-            if item[0] == 'href': object.href = item[1]
-        return object
+            if item[0] == 'hide': self.hide = sexpr.parse_bool(item) 
+            if item[0] == 'font': self.font = Font().from_sexpr(item)
+            if item[0] == 'justify': self.justify = Justify().from_sexpr(item)
+            if item[0] == 'href': self.href = item[1]
 
-    def to_sexpr(self, indent=0, newline=True) -> str:
-        """Generate the S-Expression representing this object
 
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
+    # def to_sexpr(self, indent=0, newline=True) -> str:
+    #     """Generate the S-Expression representing this object
 
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
+    #     Args:
+    #         - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
+    #         - newline (bool): Adds a newline to the end of the output. Defaults to True.
 
-        justify = f' {self.justify.to_sexpr()}' if self.justify.to_sexpr() != '' else ''
-        hide = f'( hide yes )' if self.hide else ''
-        href = f' (href "{dequote(self.href)}")' if self.href is not None else ''
+    #     Returns:
+    #         - str: S-Expression of this object
+    #     """
+    #     indents = ' '*indent
+    #     endline = '\n' if newline else ''
 
-        expression =  f'{indents}(effects {self.font.to_sexpr()}{justify}{href}{hide}){endline}'
-        return expression
+    #     justify = f' {self.justify.to_sexpr()}' if self.justify.to_sexpr() != '' else ''
+    #     hide = f'{indents}(effects ( hide yes ))\n' if self.hide else ''
+    #     href = f' (href "{dequote(self.href)}")' if self.href is not None else ''
+
+    #     expression =  f'{indents}(effects {self.font.to_sexpr()}{justify}{hide}{href}){endline}'
+    #     return expression
 
 
 @dataclass
@@ -807,6 +857,7 @@ class Property():
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_symbol_property
     """
 
+    sexpr_prefix: ClassVar[List[str]] = ["property"]
     key: str = ""
     """The ``key`` string defines the name of the property and must be unique"""
 
@@ -822,6 +873,9 @@ class Property():
     """The ``position`` defines the X and Y coordinates as well as the rotation angle of the property.
     All three items will initially be set to zero."""
 
+    hide: Optional[bool] = None
+    """The optional ``hide`` token, defines if the text is hidden"""
+
     effects: Optional[Effects] = None
     """The optional ``effects`` section defines how the text is displayed"""
 
@@ -833,7 +887,7 @@ class Property():
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Property:
-        """Convert the given S-Expresstion into a Property object
+        """Convert the given S-Expression into a Property object
 
         Args:
             - exp (list): Part of parsed S-Expression ``(property ...)``
@@ -857,7 +911,12 @@ class Property():
         for item in exp[3:]:
             if item[0] == 'id': object.id = item[1]
             if item[0] == 'at': object.position = Position().from_sexpr(item)
-            if item[0] == 'effects': object.effects = Effects().from_sexpr(item)
+            if item[0] == 'hide': object.hide = sexpr.parse_bool(item)
+            if item[0] == 'effects': 
+                if object.effects: 
+                    object.effects.from_sexpr_update(item)
+                else: 
+                    object.effects = Effects().from_sexpr(item)
             if item[0] == 'show_name': object.showName = sexpr.parse_bool(item)
         return object
 
@@ -871,22 +930,25 @@ class Property():
         Returns:
             - str: S-Expression of this object
         """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-
-        posA = f' {self.position.angle}' if self.position.angle is not None else ''
-        id = f' (id {self.id})' if self.id is not None else ''
-        sn = sexpr.maybe_to_sexpr(self.showName,"show_name") 
+        sn = sexpr.maybe_to_sexpr(self.showName, "show_name") 
         if self.effects is not None and self.effects.hide: 
             sn = " (show_name)" if self.showName else ""
 
-        expression =  f'{indents}(property "{dequote(self.key)}" "{dequote(self.value)}"{id} (at {self.position.X} {self.position.Y}{posA}){sn}'
-        if self.effects is not None:
-            expression += f'\n{self.effects.to_sexpr(indent+2)}'
-            expression += f'{indents}){endline}'
-        else:
-            expression += f'){endline}'
-        return expression
+        return sexpr.maybe_to_sexpr(
+            [
+                self.key,
+                self.value,
+                (self.id, "id"),
+                self.position,
+                (self.hide, "hide"),
+                Rstr(sn),
+                self.effects,
+            ],
+            "property",
+            indent=indent,
+            newline=newline,
+        )
+
 
 @dataclass
 class RenderCachePolygon():
@@ -1018,71 +1080,29 @@ class RenderCache():
         expression += f'{indents}){endline}'
         return expression
 
+
 @dataclass
-class Fill():
+class Fill(SexprAuto):
     """The ``fill`` token defines how schematic and symbol graphical items are filled
 
     Documentation:
         - https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_fill_definition
     """
 
-    type: str = "none"
+    sexpr_prefix: ClassVar[List[str]] = ["fill"]
+    type: Optional[Rstr] = None
     """The ``type`` attribute defines how the graphical item is filled. Defaults to ``None``.
     Possible values are:
     - ``none``: Graphic is not filled
     - ``outline``: Graphic item filled with the line color
     - ``background``: Graphic item filled with the theme background color"""
 
-    color: Optional[ColorRGBA] = None
+    color: Optional[ColorRGBA] = field(default=None, metadata={"precision": 4})
     """The optional ``color`` token defines the color of the filled item.
-
     Available since KiCad v7"""
 
-    @classmethod
-    def from_sexpr(cls, exp: list) -> Fill:
-        """Convert the given S-Expresstion into a Fill object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(fill ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list or the list is smaller than 3
-            - Exception: When the first item of the list is not fill
-
-        Returns:
-            - Fill: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != 'fill':
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-        for item in exp:
-            if item[0] == 'type': object.type = item[1]
-            if item[0] == 'color': object.color = ColorRGBA().from_sexpr(item)
-        return object
-
-    def to_sexpr(self, indent: int = 4, newline: bool = True) -> str:
-        """Generate the S-Expression representing this object
-
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 4.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-        color = f' {self.color.to_sexpr()}' if self.color is not None else ''
-
-        expression = f'{indents}(fill (type {self.type}){color}){endline}'
-        return expression
-
 @dataclass
-class Image():
+class Image:
     """The ``image`` token defines an image embedded into the file
 
     Documentation:
@@ -1182,3 +1202,164 @@ class ProjectInstance(ABC):
     @abstractmethod
     def to_sexpr(self, indent=2, newline=True) -> str:
         raise NotImplementedError
+
+
+@dataclass
+class EmbeddedFile:
+    """The ``file`` token attributes store single file embedded data."""
+
+    name: str = ""
+    """File name"""
+    type: Rstr = Rstr("")
+    """Type of file data (eg. font)"""
+    data: Optional[Rstr] = None
+    """File binary data"""
+    checksum: str = ""
+    """File data checksum"""
+
+    @classmethod
+    def from_sexpr(cls, exp: list) -> EmbeddedFile:
+        """Convert the given S-Expression into a EmbeddedFile object
+
+        Args:
+            - exp (list): Part of parsed S-Expression ``(file ...)``
+
+        Raises:
+            - Exception: When given parameter's type is not a list
+            - Exception: When the first item of the list is not file
+
+        Returns:
+            - EmbeddedFile: Object of the class initialized with the given S-Expression
+        """
+        if not isinstance(exp, list):
+            raise Exception("Expression does not have the correct type")
+
+        if exp[0] != "file":
+            raise Exception("Expression does not have the correct type")
+
+        obj = cls()
+        for item in exp:
+            if item[0] == "name":
+                obj.name = item[1]
+            if item[0] == "type":
+                obj.type = Rstr(item[1])
+            if item[0] == "data":
+                obj.data = Rstr("")
+                for i in item[1:]:
+                    obj.data = Rstr(obj.data + i + "\n")
+            if item[0] == "checksum":
+                obj.checksum = item[1]
+        return obj
+
+    def to_sexpr(self, indent=0, newline=False) -> str:
+        """Generate the S-Expression representing this object
+
+        Args:
+            - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
+            - newline (bool): Adds a newline to the end of the output. Defaults to False.
+
+        Returns:
+            - str: S-Expression of this object
+        """
+
+        return sexpr.maybe_to_sexpr(
+            [
+                (self.name, "name"),
+                (self.type, "type"),
+                (self.data, "data"),
+                (self.checksum, "checksum"),
+            ],
+            "file",
+            indent=indent,
+            newline=newline,
+        )
+
+
+@dataclass
+class EmbeddedFiles(List[EmbeddedFile]):
+    """The ``embedded_files`` token attributes store embedded file data."""
+
+    @classmethod
+    def from_sexpr(cls, exp: list) -> EmbeddedFiles:
+        """Convert the given S-Expression into a EmbeddedFile object
+
+        Args:
+            - exp (list): Part of parsed S-Expression ``(file ...)``
+
+        Raises:
+            - Exception: When given parameter's type is not a list
+            - Exception: When the first item of the list is not file
+
+        Returns:
+            - EmbeddedFile: Object of the class initialized with the given S-Expression
+        """
+        if not isinstance(exp, list):
+            raise Exception("Expression does not have the correct type")
+
+        if exp[0] != "embedded_files":
+            raise Exception("Expression does not have the correct type")
+
+        obj = cls()
+        for item in exp[1:]:
+            obj.append(EmbeddedFile.from_sexpr(item))
+        return obj
+
+    def to_sexpr(self, indent=0, newline=False) -> str:
+        """Generate the S-Expression representing this object
+
+        Args:
+            - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
+            - newline (bool): Adds a newline to the end of the output. Defaults to False.
+
+        Returns:
+            - str: S-Expression of this object
+        """
+        if len(self) == 0:
+            return ""
+        return sexpr.maybe_to_sexpr(
+            list(self), name="embedded_files", indent=indent, newline=newline
+        )
+
+
+@dataclass
+class TableBorder(SexprAuto):
+    sexpr_prefix: ClassVar[List[str]] = ["border"]
+    external: bool = False
+    header: bool = False
+    stroke: Optional[Stroke] = None
+
+
+@dataclass
+class TableSeparators(SexprAuto):
+    sexpr_prefix: ClassVar[List[str]] = ["separators"]
+    rows: bool = False
+    cols: bool = False
+    stroke: Optional[Stroke] = None
+
+
+@dataclass
+class PCBTableCell(SexprAuto):
+    sexpr_prefix: ClassVar[List[str]] = ["table_cell"]
+    positional_args: ClassVar[List[str]] = ["text"]
+    text: str = ""
+    start: PositionStart = field(default_factory=PositionStart)
+    end: PositionEnd = field(default_factory=PositionEnd)
+    margins: List[float] = field(default_factory=list)
+    span: List[float] = field(default_factory=list)
+    layer: str = "Cmts.User"
+    uuid: str = ""
+    fill: Optional[Fill] = None
+    effects: Optional[Effects] = None
+
+
+@dataclass
+class PCBTable(SexprAuto):
+    sexpr_prefix: ClassVar[List[str]] = ["table"]
+    column_count: int = 0
+    locked: Optional[bool] = None
+    layer: str = "Cmts.User"
+    border: TableBorder = field(default_factory=TableBorder)
+    separators: TableSeparators = field(default_factory=TableSeparators)
+    column_widths: List[float] = field(default_factory=list)
+    row_heights: List[float] = field(default_factory=list)
+    cells: List[PCBTableCell] = field(default_factory=list)

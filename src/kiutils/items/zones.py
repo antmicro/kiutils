@@ -17,12 +17,13 @@ Documentation taken from:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, ClassVar
 from enum import Enum
 
 from kiutils.items.common import Position
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
+from kiutils.utils.sexpr import SexprAuto
 
 @dataclass
 class KeepoutSettings():
@@ -522,6 +523,11 @@ class ZoneAttrTeardropType(Enum):
         """
         return f"{indent*' '}(type {self.name})\n"
 
+@dataclass
+class Placement(SexprAuto):
+    sexpr_prefix: ClassVar[List[str]] = ["placement"]
+    enabled: bool = False
+    sheetname: str = ""
 
 @dataclass
 class Zone():
@@ -585,6 +591,9 @@ class Zone():
     """The optional ``keepoutSettings`` section defines the keep out items if the zone
     defines as a keep out area"""
 
+    placement: Optional[Placement] = None
+    """Placement settings, used for multi channel design"""
+
     fillSettings: Optional[FillSettings] = None
     """The optional ``fillSettings`` section defines how the zone is to be filled"""
 
@@ -642,6 +651,7 @@ class Zone():
             if item[0] == 'min_thickness': object.minThickness = item[1]
             if item[0] == 'filled_areas_thickness': object.filledAreasThickness = item[1]
             if item[0] == 'keepout': object.keepoutSettings = KeepoutSettings().from_sexpr(item)
+            if item[0] == 'placement': object.placement = Placement().from_sexpr(item)
             if item[0] == 'fill': object.fillSettings = FillSettings().from_sexpr(item)
             if item[0] == 'polygon': object.polygons.append(ZonePolygon().from_sexpr(item))
             if item[0] == 'filled_polygon': object.filledPolygons.append(FilledPolygon().from_sexpr(item))
@@ -689,6 +699,7 @@ class Zone():
         expression += f'{indents}  (min_thickness {self.minThickness}){fat}\n'
         if self.keepoutSettings is not None:
             expression += f'{indents}  {self.keepoutSettings.to_sexpr()}\n'
+        expression += sexpr.maybe_to_sexpr(self.placement)
         if self.fillSettings is not None:
             expression += self.fillSettings.to_sexpr(indent+2, True)
 

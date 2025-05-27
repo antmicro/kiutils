@@ -22,7 +22,7 @@ from os import path
 from kiutils.items.common import Justify
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
-from kiutils.misc.config import KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_VERSION_STR_SCH
+from kiutils.misc.config import KIUTILS_CREATE_NEW_GENERATOR_STR, KICAD_VERSION_SAVE_SCH
 
 @dataclass
 class WksFontSize():
@@ -838,7 +838,7 @@ class WorkSheet():
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-worksheet/#_header_section"""
 
-    version: str = KIUTILS_CREATE_NEW_VERSION_STR
+    version: str = KICAD_VERSION_SAVE_SCH
     """The ``version`` token defines the work sheet version using the YYYYMMDD date format"""
 
     generator: str = KIUTILS_CREATE_NEW_GENERATOR_STR
@@ -918,7 +918,7 @@ class WorkSheet():
             WorkSheet: A empty worksheet
         """
         return cls(
-            version = KIUTILS_CREATE_NEW_VERSION_STR_SCH,
+            version = KICAD_VERSION_SAVE_SCH,
             generator = KIUTILS_CREATE_NEW_GENERATOR_STR
         )
 
@@ -936,7 +936,7 @@ class WorkSheet():
             if self.filePath is None:
                 raise Exception("File path not set")
             filepath = self.filePath
-
+        self.version = KICAD_VERSION_SAVE_SCH
         with open(filepath, 'w') as outfile:
             outfile.write(self.to_sexpr())
 

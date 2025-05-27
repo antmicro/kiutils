@@ -16,11 +16,52 @@ Documentation taken from:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, ClassVar, Dict, Self
 
-from kiutils.items.common import Position
+from kiutils.items.common import Position, PositionEnd, PositionStart
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
+from kiutils.utils.sexpr import SexprAuto, Rstr
+
+class LayerList(List[str]):
+    sexpr_prefix: ClassVar[List[str]]= ["layer", "layers"]
+
+    @classmethod
+    def from_sexpr(cls, exp: list) -> Self:
+        """Convert the given S-Expression into a Self object
+
+        Args:
+            - exp (list): Part of parsed S-Expression
+
+        Returns:
+            - Self: Object of the class initialized with the given S-Expression
+        """
+        return cls(exp[1:])
+
+
+    def to_sexpr(self, indent=0, newline=False) -> str:
+        """Generate the S-Expression representing this object
+
+        Args:
+            - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
+            - newline (bool): Adds a newline to the end of the output. Defaults to False.
+
+        Returns:
+            - str: S-Expression of this object
+        """
+        return sexpr.maybe_to_sexpr(list(self), "layers" if len(self) != 1 else "layer", indent, newline)
+
+class LayerAccess():
+    layers: Optional[LayerList]
+    @property
+    def layer(self)-> str:
+        return self.layers[0] if self.layers is not None and len(self.layers) else ""
+    @layer.setter
+    def layer(self, val: str)-> None:
+        if self.layers is not None and len(self.layers):
+            self.layers[0] = val 
+        else:
+            self.layers = LayerList([val])
 
 @dataclass
 class GeneralSettings():
@@ -406,18 +447,20 @@ class Stackup():
         return expression
 
 @dataclass
-class PlotSettings():
+class PlotSettings(SexprAuto):
     """The ``pcbplotparams`` token defines the plotting and printing settings used for the last
     plot and is defined in the set up section.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/#_plot_settings
     """
+    sexpr_prefix: ClassVar[List[str]]= ["pcbplotparams"]
+    sexpr_case_convert: ClassVar[Optional[str]] = "lower"
 
-    layerSelection: str = ""
+    layerSelection: Rstr = Rstr("")
     """The ``layerSelection`` token defines a hexadecimal bit set of the layers to plot"""
 
-    plotOnAllLayersSelection: Optional[str] = None
+    plotOnAllLayersSelection: Optional[Rstr] = field(default=None, metadata={"case": "snake"})
     """The ``plotOnAllLayersSelection`` token defines a hexadecimal bit set of layers where all 
     selected layers shall be plotted.
     
@@ -441,17 +484,11 @@ class PlotSettings():
     """The ``createGerberJobFile`` token defines if a job file should be created when plotting 
     gerber files"""
 
-    # FIXME: Where is the docu of this token?
-    dashedLineDashRatio: Optional[float] = None
-    """The ``dashedLineDashRatio`` token's documentation is still missing ..
-    
-    Available and required since KiCad v7"""
+    dashedLineDashRatio: float = field( default=12, metadata={"case": "snake", "precision": 6})
+    """The ``dashedLineDashRatio`` defines dash size of dashed line (dash length is `dashedLineDashRatio` * 0.05mm)"""
 
-    # FIXME: Where is the docu of this token?
-    dashedLineGapRatio: Optional[float] = None
-    """The ``dashedLineGapRatio`` token's documentation is still missing ..
-    
-    Available and required since KiCad v7"""
+    dashedLineGapRatio: float = field( default=3, metadata={"case": "snake", "precision": 6})
+    """The ``dashedLineGapRatio`` defines gap size of dashed line (gap length is `dashedLineGapRatio` * 0.05mm)"""
 
     svgUseInch: Optional[bool] = None
     """The ``svgUseInch`` token defines if inch units should be use when plotting SVG files.
@@ -466,11 +503,11 @@ class PlotSettings():
     
     Required until KiCad v6, removed since KiCad v7"""
 
-    plotFameRef: bool = False
-    """The ``plotFameRef`` token defines if the border and title block should be plotted"""
+    plotFrameRef: bool = False
+    """The ``plotFrameRef`` token defines if the border and title block should be plotted"""
 
-    viasOnMask: bool = False
-    """The ``viasOnMask`` token defines if the vias are to be tented"""
+    viasOnMask: Optional[bool] = None
+    """The ``viasOnMask`` token defines if the vias are to be tented (replaced by `brditems.SetupData.tenting`)"""
 
     mode: int = 1
     """The ``mode`` token defines the plot mode. An attribute of 1 plots in the normal
@@ -485,8 +522,19 @@ class PlotSettings():
     hpglPenSpeed: int = 0
     """The ``hpglPenSpeed`` token defines the integer pen speed used for HPGL plots"""
 
-    hpglPenDiameter: float = 0.0
+    hpglPenDiameter: float = field(default=0.0, metadata={"precision": 6})
     """The ``hpglPenDiameter`` token defines the floating point pen size for HPGL plots"""
+
+    pdfFrontFpPropertyPopups: bool = field(default=False, metadata={"case": "snake"})
+    """Generate property popups for front footprints: When enabled, interactive popups will be added
+    to the generated PDF containing part information for each footprint on the front of the board."""
+
+    pdfBackFpPropertyPopups: bool = field(default=False, metadata={"case": "snake"})
+    """Generate property popups for back footprints: When enabled, interactive popups will be added
+    to the generated PDF containing part information for each footprint on the back of the board."""
+
+    pdf_metadata: bool = True
+    pdf_single_document: bool = False
 
     dxfPolygonMode: bool = False
     """The ``dxfPolygonMode`` token defines if the polygon mode should be used for DXF plots"""
@@ -504,18 +552,25 @@ class PlotSettings():
     psA4Output: bool = False
     """The ``psA4Output`` token defines if the A4 page size should be used for PostScript plots"""
 
-    plotReference: bool = False
+    plot_black_and_white: bool = False
+
+    plotReference: Optional[bool] = None
     """The ``plotReference`` token defines if hidden reference field text should be plotted"""
 
-    plotValue: bool = False
+    plotValue: Optional[bool] = None
     """The ``plotValue`` token defines if hidden value field text should be plotted"""
 
-    plotInvisibleText: bool = False
+    plotInvisibleText: Optional[bool] = None
     """The ``plotInvisibleText`` token defines if hidden text other than the reference and
     value fields should be plotted"""
 
     sketchPadsOnFab: bool = False
     """The ``sketchPadsOnFab`` token defines if pads should be plotted in the outline (sketch) mode"""
+
+    plotPadNumbers: bool = False
+    hideDnpOnFab: bool = False
+    sketchDnpOnFab: bool = True
+    crossOutDnpOnFab: bool = True
 
     subtractMaskFromSilk: bool = False
     """The ``subtractMaskFromSilk`` token defines if the solder mask layers should be subtracted from
@@ -543,138 +598,8 @@ class PlotSettings():
     """The ``drillShape`` token defines the path relative to the current project path
     where the plot files will be saved"""
 
-    pdfFrontFpPropertyPopups: bool = False
-    """Generate property popups for front footprints: When enabled, interactive popups will be added
-    to the generated PDF containing part information for each footprint on the front of the board."""
-
-    pdfBackFpPropertyPopups: bool = False
-    """Generate property popups for back footprints: When enabled, interactive popups will be added
-    to the generated PDF containing part information for each footprint on the back of the board."""
-
-    plotFpText: bool = False
+    plotFpText: Optional[bool] = None
     """Indicates if footprint text should be printed to output"""
-
-    @classmethod
-    def from_sexpr(cls, exp: list) -> PlotSettings:
-        """Convert the given S-Expresstion into a PlotSettings object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(pcbplotparams ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not pcbplotparams
-
-        Returns:
-            - PlotSettings: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != 'pcbplotparams':
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-        for item in exp:
-            if item[0] == 'layerselection': object.layerSelection = item[1]
-            if item[0] == 'plot_on_all_layers_selection': object.plotOnAllLayersSelection = item[1]
-            if item[0] == 'disableapertmacros': object.disableApertMacros = sexpr.parse_bool(item)
-            if item[0] == 'usegerberextensions' : object.useGerberExtensions = sexpr.parse_bool(item)
-            if item[0] == 'usegerberattributes' : object.useGerberAttributes = sexpr.parse_bool(item)
-            if item[0] == 'usegerberadvancedattributes' : object.useGerberAdvancedAttributes = sexpr.parse_bool(item)
-            if item[0] == 'creategerberjobfile' : object.createGerberJobFile = sexpr.parse_bool(item)
-            if item[0] == 'dashed_line_dash_ratio': object.dashedLineDashRatio = item[1]
-            if item[0] == 'dashed_line_gap_ratio': object.dashedLineGapRatio = item[1]
-            if item[0] == 'svguseinch' : object.svgUseInch = sexpr.parse_bool(item)
-            if item[0] == 'svgprecision' : object.svgPrecision = item[1]
-            if item[0] == 'excludeedgelayer' : object.excludeEdgeLayer = sexpr.parse_bool(item)
-            if item[0] == 'plotframeref' : object.plotFameRef = sexpr.parse_bool(item)
-            if item[0] == 'viasonmask' : object.viasOnMask = sexpr.parse_bool(item)
-            if item[0] == 'mode' : object.mode = item[1]
-            if item[0] == 'useauxorigin' : object.useAuxOrigin = sexpr.parse_bool(item)
-            if item[0] == 'hpglpennumber' : object.hpglPenNumber = item[1]
-            if item[0] == 'hpglpenspeed' : object.hpglPenSpeed = item[1]
-            if item[0] == 'hpglpendiameter' : object.hpglPenDiameter = item[1]
-            if item[0] == 'dxfpolygonmode' : object.dxfPolygonMode = sexpr.parse_bool(item)
-            if item[0] == 'dxfimperialunits' : object.dxfImperialUnits = sexpr.parse_bool(item)
-            if item[0] == 'dxfusepcbnewfont' : object.dxfUsePcbnewFont = sexpr.parse_bool(item)
-            if item[0] == 'psnegative' : object.psNegative = sexpr.parse_bool(item)
-            if item[0] == 'psa4output' : object.psA4Output = sexpr.parse_bool(item)
-            if item[0] == 'plotreference' : object.plotReference = sexpr.parse_bool(item)
-            if item[0] == 'plotvalue' : object.plotValue = sexpr.parse_bool(item)
-            if item[0] == 'plotinvisibletext' : object.plotInvisibleText = sexpr.parse_bool(item)
-            if item[0] == 'sketchpadsonfab' : object.sketchPadsOnFab = sexpr.parse_bool(item)
-            if item[0] == 'subtractmaskfromsilk' : object.subtractMaskFromSilk = sexpr.parse_bool(item)
-            if item[0] == 'outputformat' : object.outputFormat = item[1]
-            if item[0] == 'mirror' : object.mirror = sexpr.parse_bool(item)
-            if item[0] == 'drillshape' : object.drillShape = item[1]
-            if item[0] == 'scaleselection' : object.scaleSelection = item[1]
-            if item[0] == 'outputdirectory' : object.outputDirectory = item[1]
-            if item[0] == 'pdf_front_fp_property_popups' : object.pdfFrontFpPropertyPopups = sexpr.parse_bool(item)
-            if item[0] == 'pdf_back_fp_property_popups' : object.pdfBackFpPropertyPopups = sexpr.parse_bool(item)
-            if item[0] == 'plotfptext' : object.plotFpText  = sexpr.parse_bool(item)
-        return object
-
-    def to_sexpr(self, indent=4, newline=True) -> str:
-        """Generate the S-Expression representing this object
-
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 4.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-
-        bools = ('no','yes')
-
-        expression =  f'{indents}(pcbplotparams\n'
-        expression += f'{indents}  (layerselection {self.layerSelection})\n'
-        if self.plotOnAllLayersSelection is not None:
-            expression += f'{indents}  (plot_on_all_layers_selection {self.plotOnAllLayersSelection})\n'
-        expression += f'{indents}  (disableapertmacros {bools[self.disableApertMacros]})\n'
-        expression += f'{indents}  (usegerberextensions {bools[self.useGerberExtensions]})\n'
-        expression += f'{indents}  (usegerberattributes {bools[self.useGerberAttributes]})\n'
-        expression += f'{indents}  (usegerberadvancedattributes {bools[self.useGerberAdvancedAttributes]})\n'
-        expression += f'{indents}  (creategerberjobfile {bools[self.createGerberJobFile]})\n'
-        if self.dashedLineDashRatio is not None:
-            expression += f'{indents}  (dashed_line_dash_ratio {float(self.dashedLineDashRatio):.6f})\n'
-        if self.dashedLineGapRatio is not None:
-            expression += f'{indents}  (dashed_line_gap_ratio {float(self.dashedLineGapRatio):.6f})\n'
-        if self.svgUseInch is not None:
-            expression += f'{indents}  (svguseinch {bools[self.svgUseInch]})\n'
-        expression += f'{indents}  (svgprecision {self.svgPrecision})\n'
-        if self.excludeEdgeLayer is not None:
-            expression += f'{indents}  (excludeedgelayer {bools[self.excludeEdgeLayer]})\n'
-        expression += f'{indents}  (plotframeref {bools[self.plotFameRef]})\n'
-        expression += f'{indents}  (viasonmask {bools[self.viasOnMask]})\n'
-        expression += f'{indents}  (mode {self.mode})\n'
-        expression += f'{indents}  (useauxorigin {bools[self.useAuxOrigin]})\n'
-        expression += f'{indents}  (hpglpennumber {self.hpglPenNumber})\n'
-        expression += f'{indents}  (hpglpenspeed {self.hpglPenSpeed})\n'
-        expression += f'{indents}  (hpglpendiameter {float(self.hpglPenDiameter):.6f})\n'
-        expression += f'{indents}  (pdf_front_fp_property_popups {bools[self.pdfFrontFpPropertyPopups]})'
-        expression += f'{indents}  (pdf_back_fp_property_popups {bools[self.pdfBackFpPropertyPopups]})'
-        expression += f'{indents}  (dxfpolygonmode {bools[self.dxfPolygonMode]})\n'
-        expression += f'{indents}  (dxfimperialunits {bools[self.dxfImperialUnits]})\n'
-        expression += f'{indents}  (dxfusepcbnewfont {bools[self.dxfUsePcbnewFont]})\n'
-        expression += f'{indents}  (psnegative {bools[self.psNegative]})\n'
-        expression += f'{indents}  (psa4output {bools[self.psA4Output]})\n'
-        expression += f'{indents}  (plotreference {bools[self.plotReference]})\n'
-        expression += f'{indents}  (plotvalue {bools[self.plotValue]})\n'
-        expression += f'{indents}  (plotfptext {bools[self.plotFpText]})\n'
-        expression += f'{indents}  (plotinvisibletext {bools[self.plotInvisibleText]})\n'
-        expression += f'{indents}  (sketchpadsonfab {bools[self.sketchPadsOnFab]})\n'
-        expression += f'{indents}  (subtractmaskfromsilk {bools[self.subtractMaskFromSilk]})\n'
-        expression += f'{indents}  (outputformat {self.outputFormat})\n'
-        expression += f'{indents}  (mirror {bools[self.mirror]})\n'
-        expression += f'{indents}  (drillshape {self.drillShape})\n'
-        expression += f'{indents}  (scaleselection {self.scaleSelection})\n'
-        expression += f'{indents}  (outputdirectory "{dequote(self.outputDirectory)}")\n'
-        expression += f'{indents}){endline}'
-        return expression
 
 
 @dataclass
@@ -720,6 +645,9 @@ class SetupData():
     allowSoldermaskBridgesInFootprints: Optional[bool] = None
     """Inidcates if footprints on board are allowed to have pads bridged with soldermask"""
 
+    tenting: List[Rstr] = field(default_factory=list)
+    """Boardwide via tenting options"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> SetupData:
         """Convert the given S-Expresstion into a SetupData object
@@ -747,6 +675,7 @@ class SetupData():
             if item[0] == 'pad_to_mask_clearance': object.packToMaskClearance = item[1]
             if item[0] == 'allow_soldermask_bridges_in_footprints': object.allowSoldermaskBridgesInFootprints = sexpr.parse_bool(item)
             if item[0] == 'solder_mask_min_width': object.solderMaskMinWidth = item[1]
+            if item[0] == 'tenting': object.tenting = sexpr.from_sexpr(list[Rstr], item[1:], False)
             if item[0] == 'pad_to_paste_clearance': object.padToPasteClearance = item[1]
             if item[0] == 'pad_to_paste_clearance_ratio': object.padToPasteClearanceRatio = item[1]
             if item[0] == 'aux_axis_origin': object.auxAxisOrigin = Position().from_sexpr(item)
@@ -773,6 +702,7 @@ class SetupData():
         if self.solderMaskMinWidth is not None:                   expression += f'{indents}  (solder_mask_min_width {self.solderMaskMinWidth})\n'
         if self.padToPasteClearance is not None:                  expression += f'{indents}  (pad_to_paste_clearance {self.padToPasteClearance})\n'
         if self.allowSoldermaskBridgesInFootprints is not None:   expression += f'{indents}  (allow_soldermask_bridges_in_footprints {"yes" if self.allowSoldermaskBridgesInFootprints else "no"} )'
+        if self.tenting is not None:                              expression += sexpr.maybe_to_sexpr(self.tenting, "tenting", indent)
         if self.padToPasteClearanceRatio is not None:             expression += f'{indents}  (pad_to_paste_clearance_ratio {self.padToPasteClearanceRatio})\n'
         if self.auxAxisOrigin is not None:                        expression += f'{indents}  (aux_axis_origin {self.auxAxisOrigin.X} {self.auxAxisOrigin.Y})\n'
         if self.gridOrigin is not None:                           expression += f'{indents}  (grid_origin {self.gridOrigin.X} {self.gridOrigin.Y})\n'
@@ -782,81 +712,37 @@ class SetupData():
 
 
 @dataclass
-class Segment():
+class Segment(SexprAuto, LayerAccess):
     """The ``segment`` token defines a track segment in a KiCad board
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/#_track_segment
     """
-
-    start: Position = field(default_factory=lambda: Position())
+    sexpr_prefix: ClassVar[List[str]] = ["segment"]
+    start: PositionStart = field(default_factory=lambda: PositionStart())
     """The ``start`` token defines the coordinates of the beginning of the line"""
 
-    end: Position = field(default_factory=lambda: Position())
+    end: PositionEnd = field(default_factory=lambda: PositionEnd())
     """The ``end`` token defines the coordinates of the end of the line"""
 
     width: float = 0.1
     """The ``width`` token defines the line width"""
 
-    layer: str = "F.Cu"
+    locked: Optional[bool] = None
+    """The ``locked`` token defines if the line cannot be edited"""
+
+    layers: LayerList = field(default_factory=lambda: LayerList(["F.Cu"]))
     """The ``layer`` token defines the canonical layer the track segment resides on"""
 
-    locked: bool = False
-    """The ``locked`` token defines if the line cannot be edited"""
+    solder_mask_margin: Optional[float]=None
+    """Solder mask opening width of track"""
 
     net: int = 0
     """The ``net`` token defines by the net ordinal number which net in the net
     section that the segment is part of"""
     
-    uuid: Optional[str] =""
+    uuid: Optional[str] = None
     """The optional ``uuid`` defines the universally unique identifier"""
-
-    @classmethod
-    def from_sexpr(cls, exp: list) -> Segment:
-        """Convert the given S-Expresstion into a Segment object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(segment ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not segment
-
-        Returns:
-            - Segment: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != 'segment':
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-        for item in exp:
-            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
-            if item[0] == 'start': object.start = Position().from_sexpr(item)
-            if item[0] == 'end': object.end = Position().from_sexpr(item)
-            if item[0] == 'width': object.width = item[1]
-            if item[0] == 'layer': object.layer = item[1]
-            if item[0] == 'net': object.net = item[1]
-            if item[0] == 'uuid': object.uuid = item[1]
-        return object
-
-    def to_sexpr(self, indent=2, newline=True) -> str:
-        """Generate the S-Expression representing this object
-
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 2.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-        locked = '( locked yes )' if self.locked else ''
-
-        return f'{indents}(segment (start {self.start.X} {self.start.Y}) (end {self.end.X} {self.end.Y}) (width {self.width}){locked} (layer "{dequote(self.layer)}") (net {self.net}) (uuid "{dequote(self.uuid)}")){endline}'
 
 
 @dataclass
@@ -1077,7 +963,7 @@ class Generated:
         # create members list
         members = f"{endline}(members"
         for member in self.members:
-            members += f"{endline}{indents}{dequote(member)}"
+            members += f'{endline}{indents}"{member}"'
         members += f"{endline})"
 
         expression = f"{indents}(generated"
@@ -1118,8 +1004,10 @@ class Generated:
 
 
 @dataclass
-class Teardrops:
+class Teardrops(SexprAuto):
     """The ``tearadrops`` object defines via/pad teardrop connection"""
+    sexpr_prefix: ClassVar[List[str]]= ["teardrops"]
+    sexpr_case_convert: ClassVar[Optional[str]] = "snake"
 
     bestLengthRatio: Optional[float] = None
     """Defines length of teardrop in relation to pad/via width"""
@@ -1132,6 +1020,8 @@ class Teardrops:
 
     maxWidth: Optional[float] = None
     """Defines maximum width of teardrop"""
+
+    curvedEdges: Optional[bool] = None
 
     curvePoints: Optional[int] = None
     """Defines aproximation quality of curved teardrop"""
@@ -1148,85 +1038,20 @@ class Teardrops:
     preferZoneConnections: Optional[bool] = None
     """Controls zone connection should use teardrops"""
 
-    @classmethod
-    def from_sexpr(cls, exp: list) -> Teardrops:
-        """Convert the given S-Expresstion into a Teardrops object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(teardrops ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not teardrops
-
-        Returns:
-            - Via: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != "teardrops":
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-        for item in exp:
-            if item[0] == "best_length_ratio":
-                object.bestLengthRatio = item[1]
-            if item[0] == "max_length":
-                object.maxLength = item[1]
-            if item[0] == "best_width_ratio":
-                object.bestWidthRatio = item[1]
-            if item[0] == "max_width":
-                object.maxWidth = item[1]
-            if item[0] == "curve_points":
-                object.curvePoints = item[1]
-            if item[0] == "filter_ratio":
-                object.filterRatio = item[1]
-            if item[0] == "enabled":
-                object.enabled = sexpr.parse_bool(item)
-            if item[0] == "allow_two_segments":
-                object.allowTwoSegments = sexpr.parse_bool(item)
-            if item[0] == "prefer_zone_connections":
-                object.preferZoneConnections = sexpr.parse_bool(item)
-
-        return object
-
-    def to_sexpr(self) -> str:
-        """Generate the S-Expression representing this object
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        return sexpr.maybe_to_sexpr(
-            [
-                (self.bestLengthRatio, "best_length_ratio"),
-                (self.maxLength, "max_length"),
-                (self.bestWidthRatio, "best_width_ratio"),
-                (self.maxWidth, "max_width"),
-                (self.curvePoints, "curve_points"),
-                (self.filterRatio, "filter_ratio"),
-                (self.enabled, "enabled"),
-                (self.allowTwoSegments, "allow_two_segments"),
-                (self.preferZoneConnections, "prefer_zone_connections"),
-            ],
-            "teardrops",
-        )
-
-
 @dataclass
-class Via():
+class Via(SexprAuto):
     """The ``via`` token defines a track via in a KiCad board
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/#_track_via
     """
-
-    type: Optional[str] = None
+    sexpr_prefix: ClassVar[List[str]] = ["via"]
+    positional_args: ClassVar[List[str]] = ["type"]
+    sexpr_case_convert: ClassVar[Optional[str]] = "snake" 
+    type: Rstr = Rstr("")
     """The optional ``type`` attribute specifies the via type. Valid via types are ``blind`` and
     ``micro``. If no type is defined, the via is a through hole type"""
 
-    locked: bool = False
-    """The ``locked`` token defines if the line cannot be edited"""
 
     position: Position = field(default_factory=lambda: Position())
     """The ``position`` token define the coordinates of the center of the via"""
@@ -1241,6 +1066,8 @@ class Via():
     """The ``layers`` token define the canonical layer set the via connects as a list
     of strings"""
 
+    locked: Optional[bool] = None
+    """The ``locked`` token defines if the line cannot be edited"""
     removeUnusedLayers: Optional[bool] = None
     """The ``removeUnusedLayers`` token is undocumented (as of 20.02.2022)"""
 
@@ -1250,111 +1077,24 @@ class Via():
     free: Optional[bool] = None
     """The ``free`` token indicates that the via is free to be moved outside it's assigned net"""
 
-    net: int = 0
-    """The ``net`` token defines by net ordinal number which net in the net section that
-    the via is part of"""
+    zoneLayerConnections: Optional[List[str]] = field(default=None, metadata={"force_empty": True})
+    """Indicates which cooper layers are connected"""
+
+    padstack: Optional[PadStack]= None
+    """Defines Via pads on different layers"""
 
     teardrops: Optional[Teardrops] = None
     """Defines teardrop connections of via"""
 
-    uuid: Optional[str] =""
+    tenting: List[Rstr] = field(default_factory=list)
+    """Via tenting option"""
+
+    net: Optional[int] = 0
+    """The ``net`` token defines by net ordinal number which net in the net section that
+    the via is part of"""
+
+    uuid: Optional[str] = ""
     """The optional ``uuid`` defines the universally unique identifier"""
-
-    zoneLayerConnections: Optional[List[str]] = None
-    """Indicates which cooper layers are connected"""
-
-    @classmethod
-    def from_sexpr(cls, exp: list) -> Via:
-        """Convert the given S-Expresstion into a Via object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(via ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not via
-
-        Returns:
-            - Via: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != 'via':
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-        for item in exp:
-            if type(item) != type([]):
-                if item == 'micro' or item == 'blind': object.type = item
-                continue
-            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
-            if item[0] == 'at': object.position = Position().from_sexpr(item)
-            if item[0] == 'size': object.size = item[1]
-            if item[0] == 'drill': object.drill = item[1]
-            if item[0] == 'layers':
-                for layer in item[1:]:
-                    object.layers.append(layer)
-            if item[0] == 'remove_unused_layers': object.removeUnusedLayers = sexpr.parse_bool(item)
-            if item[0] == 'keep_end_layers': object.keepEndLayers = sexpr.parse_bool(item)
-            if item[0] == 'free': object.free = sexpr.parse_bool(item)
-            if item[0] == 'net': object.net = item[1]
-            if item[0] == 'teardrops': object.teardrops = Teardrops().from_sexpr(item)
-            if item[0] == 'uuid': object.uuid = item[1]
-            if item[0] == 'zone_layer_connections':
-                object.zoneLayerConnections = []
-                for layer in item[1:]:
-                    object.zoneLayerConnections.append(layer)
-
-        return object
-
-    def to_sexpr(self, indent=2, newline=True) -> str:
-        """Generate the S-Expression representing this object
-
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 2.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-
-        type = f' {self.type}' if self.type is not None else ''
-        locked = f'( locked yes )' if self.locked else ''
-
-        layers = ''
-        for layer in self.layers:
-            layers += f' "{dequote(layer)}"'
-
-
-        remove_unused_layers = ""
-        keep_end_layers = ""
-        zone_layer_connections = ''
-        free = ""
-        if self.removeUnusedLayers is not None:
-            remove_unused_layers = (
-                f" (remove_unused_layers yes)"
-                if self.removeUnusedLayers
-                else " (remove_unused_layers no)"
-            )
-        if self.keepEndLayers is not None:
-            keep_end_layers = (
-                f" (keep_end_layers yes)"
-                if self.keepEndLayers
-                else " (keep_end_layers no)"
-            )
-        if self.zoneLayerConnections is not None:
-            zone_layer_connections += ' (zone_layer_connections'
-            for layer in self.zoneLayerConnections:
-                zone_layer_connections += f' "{dequote(layer)}"'
-            zone_layer_connections += ')'
-        if self.free is not None:
-            free = f" (free yes)" if self.free else " (free no)"
-        uuid = f' (uuid "{dequote(self.uuid)}")' if self.uuid is not None else ''
-
-        return f'{indents}(via{type} (at {self.position.X} {self.position.Y}) (size {self.size}) (drill {self.drill}) (layers{layers}){locked}{remove_unused_layers}{keep_end_layers}{free}{zone_layer_connections}{sexpr.maybe_to_sexpr(self.teardrops)}(net {self.net}){uuid}){endline}'
 
 @dataclass
 class Arc():
@@ -1514,3 +1254,21 @@ class Target():
         endline = '\n' if newline else ''
 
         return f'{indents}(target {self.type} (at {self.position.X} {self.position.Y}) (size {self.size}) (width {self.width}) (layer "{self.layer}") (uuid "{dequote(self.uuid)}")){endline}'
+
+@dataclass
+class PadStackLayer(SexprAuto):
+    sexpr_prefix: ClassVar[List[str]]= ["layer"]
+    positional_args: ClassVar[List[str]] = ["key"]
+    key: str=""
+    shape: Optional[Rstr]= None
+    size: List[float]= field(default_factory=list)
+    rect_delta: List[float]= field(default_factory=list)
+    offset: List[float]= field(default_factory=list)
+    thermal_bridge_angle: Optional[float]=None
+    zone_connect: Optional[float]=None
+
+@dataclass
+class PadStack(SexprAuto):
+    sexpr_prefix: ClassVar[List[str]]= ["padstack"]
+    mode: Optional[Rstr]=None
+    layers: Dict[str, PadStackLayer] = field(default_factory=dict, metadata={"flatten":True})

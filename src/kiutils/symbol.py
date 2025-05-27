@@ -19,11 +19,12 @@ from typing import Optional, List
 from os import path
 import re
 
-from kiutils.items.common import Effects, Position, Property, Font
+from kiutils.items.common import Effects, Position, Property, Font, EmbeddedFiles
 from kiutils.items.syitems import *
+from kiutils.items.schitems import SchBezier
 from kiutils.utils import sexpr
 from kiutils.utils.strings import dequote
-from kiutils.misc.config import KIUTILS_CREATE_NEW_VERSION_STR_SCH,KIUTILS_CREATE_NEW_GENERATOR_STR,KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+from kiutils.misc.config import *
 
 @dataclass
 class SymbolAlternativePin():
@@ -116,7 +117,7 @@ class SymbolPin():
     """The optional ``numberEffects`` token define how the pin's number is displayed. This token is
     mandatory for KiCad v6 and was made optional since KiCad v7."""
 
-    hide: bool = False      # Missing in documentation
+    hide: Optional[bool] = None      # Missing in documentation
     """The 'hide' token defines if the pin should be hidden"""
 
     alternatePins: List[SymbolAlternativePin] = field(default_factory=list)
@@ -146,9 +147,7 @@ class SymbolPin():
         object.electricalType = exp[1]
         object.graphicalStyle = exp[2]
         for item in exp[3:]:
-            if type(item) != type([]):
-                if item == 'hide': object.hide = True
-                else: continue
+            if item[0] == 'hide': object.hide = sexpr.parse_bool(item)
             if item[0] == 'at': object.position = Position().from_sexpr(item)
             if item[0] == 'length': object.length = item[1]
             if item[0] == 'name':
@@ -176,7 +175,7 @@ class SymbolPin():
         endline = '\n' if newline else ''
         newLineAdded = False
 
-        hide = ' hide' if self.hide else ''
+        hide = sexpr.maybe_to_sexpr(self.hide, "hide")
         posA = f' {self.position.angle}' if self.position.angle is not None else ''
         nameEffects = f' {self.nameEffects.to_sexpr(newline=False)}' if self.nameEffects is not None else ''
         numberEffects = f' {self.numberEffects.to_sexpr(newline=False)}' if self.numberEffects is not None else ''
@@ -311,7 +310,7 @@ class Symbol():
     current library from which to derive a new symbol. Extended symbols currently can only have
     different symbol properties than their parent symbol."""
 
-    hidePinNumbers: bool = False
+    hidePinNumbers: Optional[bool] = None
     """The ``pin_numbers`` token defines the visibility setting of the symbol pin numbers for
     the entire symbol. If set to False, the all of the pin numbers in the symbol are visible."""
 
@@ -319,8 +318,8 @@ class Symbol():
     """The optional ``pinNames`` token defines the attributes for all of the pin names of the symbol.
     If the ``pinNames`` token is not defined, all symbol pins are shown with the default offset."""
 
-    pinNamesHide: bool = False
-    """The optional ``pinNamesOffset`` token defines the pin name of all pins should be hidden"""
+    pinNamesHide: Optional[bool] = None
+    """The optional ``pinNamesOffset`` token defines that pin name of all pins should be hidden"""
 
     pinNamesOffset: Optional[float] = None
     """The optional ``pinNamesOffset`` token defines the pin name offset for all pin names of the
@@ -358,6 +357,12 @@ class Symbol():
     excludeFromSim: Optional[bool] = None
     """The ``excludeFromSim`` indicates that component should not be taken into account during simulation"""
 
+    embeddedFonts: Optional[bool] = None
+    """The ``embeddedFonts`` indicates that there are fonts embedded into this component"""
+
+    embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
+    """The ``embeddedFiles`` store data of embedded files"""
+
     @classmethod
     def from_sexpr(cls, exp: list) -> Symbol:
         """Convert the given S-Expression into a Symbol object
@@ -383,15 +388,12 @@ class Symbol():
         for item in exp[2:]:
             if item[0] == 'extends': object.extends = item[1]
             if item[0] == 'pin_numbers':
-                if item[1] == 'hide':
-                    object.hidePinNumbers = True
+                if item[1] == 'hide' or item[1][0] == 'hide': object.hidePinNumbers = sexpr.parse_bool(item[1])
             if item[0] == 'pin_names':
                 object.pinNames = True
                 for property in item[1:]:
-                    if type(property) == type([]):
-                        if property[0] == 'offset': object.pinNamesOffset = property[1]
-                    else:
-                        if property == 'hide': object.pinNamesHide = True
+                    if property[0] == 'offset': object.pinNamesOffset = property[1]
+                    elif property == 'hide' or property[0] == 'hide': object.pinNamesHide = sexpr.parse_bool(property)
             if item[0] == 'in_bom': object.inBom = sexpr.parse_bool(item)
             if item[0] == 'on_board': object.onBoard = sexpr.parse_bool(item)
             if item[0] == 'power': object.isPower = True
@@ -407,7 +409,10 @@ class Symbol():
             if item[0] == 'rectangle': object.graphicItems.append(SyRect().from_sexpr(item))
             if item[0] == 'text': object.graphicItems.append(SyText().from_sexpr(item))
             if item[0] == 'text_box': object.graphicItems.append(SyTextBox().from_sexpr(item))
+            if item[0] == 'bezier': object.graphicItems.append(SchBezier().from_sexpr(item))
             if item[0] == 'exclude_from_sim': object.excludeFromSim = sexpr.parse_bool(item)
+            if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
+            if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
 
         return object
 
@@ -465,10 +470,10 @@ class Symbol():
             obtext = 'yes' if self.onBoard else 'no'
         onboard = f' (on_board {obtext})' if self.onBoard is not None else ''
         power = f' (power)' if self.isPower else ''
-        pnhide = f' hide' if self.pinNamesHide else ''
+        pnhide = sexpr.maybe_to_sexpr(self.pinNamesHide, "hide")
         pnoffset = f' (offset {self.pinNamesOffset})' if self.pinNamesOffset is not None else ''
         pinnames = f' (pin_names{pnoffset}{pnhide})' if self.pinNames else ''
-        pinnumbers = f' (pin_numbers hide)' if self.hidePinNumbers else ''
+        pinnumbers = ' (pin_numbers ( hide yes) )' if self.hidePinNumbers else ''
         extends = f' (extends "{dequote(self.extends)}")' if self.extends is not None else ''
         if self.excludeFromSim is not None:
             exclude_sim = ' (exclude_from_sim yes)' if self.excludeFromSim else ' (exclude_from_sim no)'
@@ -482,6 +487,8 @@ class Symbol():
             expression += item.to_sexpr(indent+2)
         for item in self.units:
             expression += item.to_sexpr(indent+2)
+        expression += sexpr.maybe_to_sexpr((self.embeddedFonts, "embedded_fonts"), indent=indent+2)
+        expression += self.embeddedFiles.to_sexpr(indent=indent+2)
         expression += f'{indents}){endline}'
         return expression
 
@@ -569,13 +576,13 @@ class SymbolLib():
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-symbol-lib/
     """
-    version: str = KIUTILS_CREATE_NEW_VERSION_STR_SCH
+    version: str = KICAD_VERSION_SAVE_SCH
     """The ``version`` token attribute defines the symbol library version using the YYYYMMDD date format"""
 
     generator: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_STR
     """The ``generator`` token attribute defines the program used to write the file"""
 
-    generatorVersion: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+    generatorVersion: Optional[str] = KICAD_GENERATOR_VERSION_SAVE
     """The ``generatorVersion`` token attribute defines the program version used to write the file"""
 
     symbols: List[Symbol] = field(default_factory=list)
@@ -606,7 +613,7 @@ class SymbolLib():
 
         with open(filepath, 'r', encoding=encoding) as infile:
             item = cls.from_sexpr(sexpr.parse_sexp(infile.read()))
-            assert str(item.version) >= KIUTILS_CREATE_NEW_VERSION_STR_SCH, "kiutils supports only KiCad8+ files"
+            assert str(item.version) >= KICAD_VERSION_MINIMAL_SCH, "kiutils supports only KiCad8+ files"
             item.filePath = filepath
             return item
 
@@ -657,6 +664,8 @@ class SymbolLib():
                 raise Exception("File path not set")
             filepath = self.filePath
 
+        self.version = KICAD_VERSION_SAVE_SCH
+        self.generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         with open(filepath, 'w', encoding=encoding) as outfile:
             outfile.write(self.to_sexpr())
 

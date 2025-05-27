@@ -19,11 +19,13 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Union
 from os import path
 
-from kiutils.items.common import Image, PageSettings, TitleBlock
+from kiutils.items.common import Image, PageSettings, TitleBlock, EmbeddedFiles
 from kiutils.items.schitems import *
 from kiutils.symbol import Symbol, SchematicLibSymbol
 from kiutils.utils import sexpr
-from kiutils.misc.config import KIUTILS_CREATE_NEW_GENERATOR_STR, KIUTILS_CREATE_NEW_VERSION_STR_SCH, KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+from kiutils.misc.config import *
+
+GraphicalItem = Union[Connection, PolyLine, Arc, Circle, Rectangle, Text, TextBox, Junction, NoConnect, BusEntry, Image, SchBezier]
 
 @dataclass
 class Schematic():
@@ -33,13 +35,13 @@ class Schematic():
         https://dev-docs.kicad.org/en/file-formats/sexpr-schematic/
     """
 
-    version: str = KIUTILS_CREATE_NEW_VERSION_STR_SCH
+    version: str = KICAD_VERSION_SAVE_SCH
     """The ``version`` token attribute defines the schematic version using the YYYYMMDD date format"""
 
     generator: str = KIUTILS_CREATE_NEW_GENERATOR_STR
     """The ``generator`` token attribute defines the program used to write the file"""
 
-    generatorVersion : str = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+    generatorVersion : str = KICAD_GENERATOR_VERSION_SAVE
     """The ``generatorVersion`` token attribute defines the program version used to write the file"""
 
     uuid: Optional[str] = None
@@ -57,36 +59,11 @@ class Schematic():
     schematicSymbols: List[SchematicSymbol] = field(default_factory=list)
     """The ``schematicSymbols`` token defines a list of instances of symbols used in the schematic"""
 
-    junctions: List[Junction] = field(default_factory=list)
-    """The ``junctions`` token defines a list of junctions used in the schematic"""
-
-    noConnects: List[NoConnect] = field(default_factory=list)
-    """The ``noConnect`` token defines a list of no_connect markers used in the schematic"""
-
-    busEntries: List[BusEntry] = field(default_factory=list)
-    """The ``busEntries`` token defines a list of bus_entry used in the schematic"""
-
     busAliases: List[BusAlias] = field(default_factory=list)
     """The ``busAliases`` token defines a list of bus_alias used in the schematic"""
 
-    graphicalItems: List[Union[Connection, PolyLine]] = field(default_factory=list)
-    """The ``graphicalItems`` token defines a list of ``bus``, ``wire`` or ``polyline`` elements 
-    used in the schematic"""
-
-    shapes: List[Union[Arc, Circle, Rectangle]] = field(default_factory=list)
-    """The ``shapes`` token defines a list of graphical shapes (``Arc``, ``Rectangle`` or 
-    ``Circle``) used in the schematic.
-    
-    Available since KiCad v7"""
-
-    images: List[Image] = field(default_factory=list)
-    """The ``images`` token defines a list of images used in the schematic"""
-
-    texts: List[Text] = field(default_factory=list)
-    """The ``text`` token defines a list of texts used in the schematic"""
-
-    textBoxes: List[TextBox] = field(default_factory=list)
-    """The ``text_box`` token defines a list of text boxes used in the schematic"""
+    graphicalItems: List[GraphicalItem] = field(default_factory=list)
+    """The ``graphicalItems`` token defines a list of graphical elements used in the schematic"""
 
     labels: List[LocalLabel] = field(default_factory=list)
     """The ``labels`` token defines a list of local labels used in the schematic"""
@@ -96,6 +73,9 @@ class Schematic():
 
     hierarchicalLabels: List[HierarchicalLabel] = field(default_factory=list)
     """The ``herarchicalLabels`` token defines a list of hierarchical labels used in the schematic"""
+
+    ruleArea: List[RuleArea] = field(default_factory=list)
+    """The ``ruleArea`` token defines a list of rule areas defined in the schematic."""
 
     netclassFlags: List[NetclassFlag] = field(default_factory=list)
     """The ``netclassFlags`` token defines a list of netclass flags used in the schematic.
@@ -116,6 +96,20 @@ class Schematic():
     filePath: Optional[str] = None
     """The ``filePath`` token defines the path-like string to the schematic file. Automatically set when
     ``self.from_file()`` is used. Allows the use of ``self.to_file()`` without parameters."""
+
+    embeddedFonts: Optional[bool] = None
+    """The ``embeddedFonts`` indicates that there are fonts embedded into this component"""
+
+    embeddedFiles: EmbeddedFiles = field(default_factory=EmbeddedFiles)
+    """The ``embeddedFiles`` store data of embedded files"""
+
+    tables: List[SchTable] = field(default_factory=list)
+    """Defines list of tables and their contents"""
+
+    @property
+    def images(self) -> List[Image]:
+        """Get all images from schematic"""
+        return [i for i in self.graphicalItems if isinstance(i, Image)]
 
     @classmethod
     def from_sexpr(cls, exp: list) -> Schematic:
@@ -148,22 +142,24 @@ class Schematic():
             if item[0] == 'lib_symbols':
                 for symbol in item[1:]:
                     object.libSymbols.append(SchematicLibSymbol().from_sexpr(symbol))
-            if item[0] == 'junction': object.junctions.append(Junction().from_sexpr(item))
-            if item[0] == 'no_connect': object.noConnects.append(NoConnect().from_sexpr(item))
-            if item[0] == 'bus_entry': object.busEntries.append(BusEntry().from_sexpr(item))
+            if item[0] == 'junction': object.graphicalItems.append(Junction().from_sexpr(item))
+            if item[0] == 'no_connect': object.graphicalItems.append(NoConnect().from_sexpr(item))
+            if item[0] == 'bus_entry': object.graphicalItems.append(BusEntry().from_sexpr(item))
             if item[0] == 'bus_alias': object.busAliases.append(BusAlias().from_sexpr(item))
             if item[0] == 'wire': object.graphicalItems.append(Connection().from_sexpr(item))
             if item[0] == 'bus': object.graphicalItems.append(Connection().from_sexpr(item))
             if item[0] == 'polyline': object.graphicalItems.append(PolyLine().from_sexpr(item))
-            if item[0] == 'arc': object.shapes.append(Arc.from_sexpr(item))
-            if item[0] == 'circle': object.shapes.append(Circle.from_sexpr(item))
-            if item[0] == 'rectangle': object.shapes.append(Rectangle.from_sexpr(item))
-            if item[0] == 'image': object.images.append(Image().from_sexpr(item))
-            if item[0] == 'text': object.texts.append(Text().from_sexpr(item))
-            if item[0] == 'text_box': object.textBoxes.append(TextBox().from_sexpr(item))
+            if item[0] == 'arc': object.graphicalItems.append(Arc.from_sexpr(item))
+            if item[0] == 'circle': object.graphicalItems.append(Circle.from_sexpr(item))
+            if item[0] == 'rectangle': object.graphicalItems.append(Rectangle.from_sexpr(item))
+            if item[0] == 'image': object.graphicalItems.append(Image().from_sexpr(item))
+            if item[0] == 'bezier': object.graphicalItems.append(SchBezier().from_sexpr(item))
+            if item[0] == 'text': object.graphicalItems.append(Text().from_sexpr(item))
+            if item[0] == 'text_box': object.graphicalItems.append(TextBox().from_sexpr(item))
             if item[0] == 'label': object.labels.append(LocalLabel().from_sexpr(item))
             if item[0] == 'global_label': object.globalLabels.append(GlobalLabel().from_sexpr(item))
             if item[0] == 'hierarchical_label': object.hierarchicalLabels.append(HierarchicalLabel().from_sexpr(item))
+            if item[0] == 'rule_area': object.ruleArea.append(RuleArea.from_sexpr(item))
             if item[0] == 'netclass_flag': object.netclassFlags.append(NetclassFlag.from_sexpr(item))
             if item[0] == 'symbol': object.schematicSymbols.append(SchematicSymbol().from_sexpr(item))
             if item[0] == 'sheet': object.sheets.append(HierarchicalSheet().from_sexpr(item))
@@ -173,8 +169,11 @@ class Schematic():
             if item[0] == 'symbol_instances':
                 for instance in item[1:]:
                     object.symbolInstances.append(SymbolInstance().from_sexpr(instance))
+            if item[0] == 'embedded_fonts': object.embeddedFonts = sexpr.parse_bool(item)
+            if item[0] == 'embedded_files': object.embeddedFiles = EmbeddedFiles.from_sexpr(item)
+            if item[0] == 'table': object.tables.append(SchTable.from_sexpr(item))
                     
-        assert str(object.version) >= KIUTILS_CREATE_NEW_VERSION_STR_SCH, "kiutils supports only KiCad8+ files"
+        assert str(object.version) >= KICAD_VERSION_MINIMAL_SCH, "kiutils supports only KiCad8+ files"
         return object
 
     @classmethod
@@ -209,9 +208,9 @@ class Schematic():
             - Schematic: Empty schematic
         """
         schematic = cls(
-            version = KIUTILS_CREATE_NEW_VERSION_STR_SCH,
+            version = KICAD_VERSION_SAVE_SCH,
             generator = KIUTILS_CREATE_NEW_GENERATOR_STR,
-            generatorVersion = KIUTILS_CREATE_NEW_GENERATOR_VERSION_STR
+            generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         )
         schematic.sheetInstances.append(HierarchicalSheetInstance(instancePath='/', page='1'))
         return schematic
@@ -233,6 +232,8 @@ class Schematic():
                 raise Exception("File path not set")
             filepath = self.filePath
 
+        self.version = KICAD_VERSION_SAVE_SCH
+        self.generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         with open(filepath, 'w', encoding=encoding) as outfile:
             outfile.write(self.to_sexpr())
 
@@ -270,43 +271,14 @@ class Schematic():
             for item in self.busAliases:
                 expression += item.to_sexpr(indent+2)
 
-        if self.junctions:
-            expression += '\n'
-            for item in self.junctions:
-                expression += item.to_sexpr(indent+2)
-
-        if self.noConnects:
-            expression += '\n'
-            for item in self.noConnects:
-                expression += item.to_sexpr(indent+2)
-
-        if self.busEntries:
-            expression += '\n'
-            for item in self.busEntries:
-                expression += item.to_sexpr(indent+2)
         if self.graphicalItems:
             expression += '\n'
             for item in self.graphicalItems:
                 expression += item.to_sexpr(indent+2)
 
-        if self.shapes:
+        if self.tables:
             expression += '\n'
-            for item in self.shapes:
-                expression += item.to_sexpr(indent+2)
-
-        if self.images:
-            expression += '\n'
-            for item in self.images:
-                expression += item.to_sexpr(indent+2)
-
-        if self.textBoxes:
-            expression += '\n'
-            for item in self.textBoxes:
-                expression += item.to_sexpr(indent+2)
-
-        if self.texts:
-            expression += '\n'
-            for item in self.texts:
+            for item in self.tables:
                 expression += item.to_sexpr(indent+2)
 
         if self.labels:
@@ -322,6 +294,11 @@ class Schematic():
         if self.hierarchicalLabels:
             expression += '\n'
             for item in self.hierarchicalLabels:
+                expression += item.to_sexpr(indent+2)
+
+        if self.ruleArea:
+            expression += '\n'
+            for item in self.ruleArea:
                 expression += item.to_sexpr(indent+2)
 
         if self.netclassFlags:
@@ -352,6 +329,9 @@ class Schematic():
             for item in self.symbolInstances:
                 expression += item.to_sexpr(indent+4)
             expression += '  )\n'
+            
+        expression += sexpr.maybe_to_sexpr((self.embeddedFonts, "embedded_fonts"), indent=indent+2)
+        expression += self.embeddedFiles.to_sexpr(indent=indent+2)
 
         expression += f'{indents}){endline}'
         return expression

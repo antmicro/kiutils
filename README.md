@@ -7,7 +7,7 @@
 ![Last commit](https://img.shields.io/github/last-commit/mvnmgrx/kiutils)
 [![Documentation Status](https://readthedocs.org/projects/kiutils/badge/?version=latest)](https://kiutils.readthedocs.io/en/latest/?badge=latest)
 
-Simple and SCM-friendly KiCad file parser based on Python dataclasses for KiCad 6.0
+Simple and SCM-friendly KiCad file parser based on Python dataclasses for KiCad 8.0
 and up. The following KiCad-related files are currently supported:
 - `.kicad_pcb` - Board layouts
 - `.kicad_sch` - Schematics
@@ -24,6 +24,10 @@ files when the Python script ran.
 
 Parsing of the files is based on the S-Expression parser found in this library:
 [GitLab: KiCad Library utilities](https://gitlab.com/kicad/libraries/kicad-library-utils)
+
+> [!NOTE]
+>
+> `kiutils` is able to open KiCad 8+ files, but saved files will be migrated to latest supported version (KiCad 9) 
 
 ## Prerequisites
 The following is required to use `kiutils`:
