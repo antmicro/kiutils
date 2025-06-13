@@ -16,14 +16,17 @@ KICAD_VERSION_MINIMAL_SCH = '20231120'
 KICAD_VERSION_MINIMAL_PCB = '20240108'
 """PCB oldest supported version string"""
 
+KICAD_VERSION_SAVE_SYM = '20241209'
+"""Symbol version string used when saving to file"""
+
 KICAD_VERSION_SAVE_SCH = '20250114'
-"""Schematics version string used in ``create_new()`` class functions"""
+"""Schematics version string used when saving to file"""
 
 KICAD_VERSION_SAVE_PCB = '20241229'
-"""PCB version string used in ``create_new()`` class functions"""
+"""PCB version string used when saving to file"""
 
 KIUTILS_CREATE_NEW_GENERATOR_STR = 'kiutils'
 """Generator string used in ``create_new()`` class functions"""
 
 KICAD_GENERATOR_VERSION_SAVE = '9.0'
-"""Generator version string used in ``create_new()`` class functions"""
+"""Generator version string used when saving to file"""

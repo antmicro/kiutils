@@ -576,7 +576,7 @@ class SymbolLib():
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-symbol-lib/
     """
-    version: str = KICAD_VERSION_SAVE_SCH
+    version: str = KICAD_VERSION_SAVE_SYM
     """The ``version`` token attribute defines the symbol library version using the YYYYMMDD date format"""
 
     generator: Optional[str] = KIUTILS_CREATE_NEW_GENERATOR_STR
@@ -664,7 +664,7 @@ class SymbolLib():
                 raise Exception("File path not set")
             filepath = self.filePath
 
-        self.version = KICAD_VERSION_SAVE_SCH
+        self.version = KICAD_VERSION_SAVE_SYM
         self.generatorVersion = KICAD_GENERATOR_VERSION_SAVE
         with open(filepath, 'w', encoding=encoding) as outfile:
             outfile.write(self.to_sexpr())
