@@ -31,7 +31,7 @@ Parsing of the files is based on the S-Expression parser found in this library:
 
 ## Prerequisites
 The following is required to use `kiutils`:
-- Python 3.7 or higher
+- Python 3.11 or higher
 
 ## Installation
 ``kiutils`` is available on [PyPI](https://pypi.org/project/kiutils/). Use Python's `pip`
