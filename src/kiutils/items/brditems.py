@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, List, ClassVar, Dict, Self
 
-from kiutils.items.common import Position, PositionEnd, PositionStart
+from kiutils.items.common import Position, PositionEnd, PositionStart, BasePoly
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
 from kiutils.utils.sexpr import SexprAuto, Rstr
@@ -764,10 +764,10 @@ class Generated:
     locked: Optional[bool] = None
     """The ``locked`` token defines if the object can be edited"""
 
-    baseLine: List[str] = field(default_factory=list)
+    baseLine: Optional[BasePoly] = None
     """The ``baseLine`` token defines a primary line that tuned tracks are alligned to"""
 
-    baseLineCoupled: Optional[List[str]] = None
+    baseLineCoupled: Optional[BasePoly] = None
     """The ``baseLineCoupled`` token defines the coupled base line of the tuned tracks"""
 
     cornerRadius: int = 0
@@ -872,16 +872,9 @@ class Generated:
             elif item[0] == "locked":
                 object.locked = sexpr.parse_bool(item)
             elif item[0] == "base_line":
-                pts = item[1]
-                if pts[0] == "pts":
-                    for point in pts[1:]:
-                        object.baseLine.append(point)
+                object.baseLine = BasePoly.from_sexpr(item)
             elif item[0] == "base_line_coupled":
-                pts = item[1]
-                if pts[0] == "pts":
-                    object.baseLineCoupled = []
-                    for point in pts[1:]:
-                        object.baseLineCoupled.append(point)
+                object.baseLineCoupled = BasePoly.from_sexpr(item)
             elif item[0] == "corner_radius_percent":
                 object.cornerRadius = item[1]
             elif item[0] == "end":
@@ -933,13 +926,6 @@ class Generated:
                     object.members.append(member)
         return object
 
-    def generate_xy(self, xy) -> str:
-        """Serialize (to S-expr) list of points"""
-        expression = ""
-        for p in xy:
-            expression += f" ({dequote(p[0])} {p[1]} {p[2]})"
-        return expression
-
     def to_sexpr(self, indent=2, newline=True) -> str:
         """Generate the S-Expression representing this object
 
@@ -952,12 +938,6 @@ class Generated:
         """
         indents = " " * indent
         endline = "\n" if newline else ""
-        baseLine = f"(base_line (pts{self.generate_xy(self.baseLine)}))"
-        baseLineCoupled = (
-            f"{endline}{indents}(base_line_coupled (pts{self.generate_xy(self.baseLineCoupled)}))"
-            if self.baseLineCoupled is not None
-            else ""
-        )
         end = f"(end ({self.end[0]} {self.end[1]} {self.end[2]}))"
         origin = f"(origin ({self.origin[0]} {self.origin[1]} {self.origin[2]}))"
         # create members list
@@ -972,9 +952,13 @@ class Generated:
         expression += f'{endline}{indents}(name "{dequote(self.name)}")'
         expression += f'{endline}{indents}(layer "{dequote(self.layer)}")'
         if self.locked is not None:
-           expression += "\n" + sexpr.maybe_to_sexpr(self.locked, "locked", indent)
-        expression += f"{endline}{indents}{baseLine}"
-        expression += baseLineCoupled
+            expression += "\n" + sexpr.maybe_to_sexpr(self.locked, "locked", indent)
+        expression += sexpr.maybe_to_sexpr(
+            self.baseLine, indent=indent, newline=True, kwargs={"sexpr_prefix": "base_line"}
+        )
+        expression += sexpr.maybe_to_sexpr(
+            self.baseLineCoupled, indent=indent, newline=True, kwargs={"sexpr_prefix": "base_line_coupled"}
+        )
         expression += f"{endline}{indents}(corner_radius_percent {self.cornerRadius})"
         expression += f"{endline}{indents}{end}"
         expression += f'{endline}{indents}(initial_side "{dequote(self.initialSide)}")'

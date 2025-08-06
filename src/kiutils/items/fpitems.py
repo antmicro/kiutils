@@ -18,9 +18,10 @@ Documentation taken from:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, ClassVar
 
 from kiutils.items.common import RenderCache, Stroke, Position, Effects
+from kiutils.items.gritems import GrPoly
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
 
@@ -654,106 +655,13 @@ class FpArc():
         return f'{indents}(fp_arc (start {self.start.X} {self.start.Y}) (mid {self.mid.X} {self.mid.Y}) (end {self.end.X} {self.end.Y}){width}{locked} (layer "{dequote(self.layer)}"){uuid}){endline}'
 
 @dataclass
-class FpPoly():
+class FpPoly(GrPoly):
     """The ``fp_poly`` token defines a graphic polygon in a footprint definition.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_footprint_polygon
     """
-
-    layer: str = "F.Cu"
-    """The ``layer`` token defines the canonical layer the polygon resides on"""
-
-    coordinates: List[Position] = field(default_factory=list)
-    """The ``coordinates`` define the list of X/Y coordinates of the polygon outline"""
-
-    width: Optional[float] = 0.12     # Used for KiCad < 7
-    """The ``width`` token defines the line width of the polygon. (prior to version 7)"""
-
-    stroke: Optional[Stroke] = None   # Used for KiCad >= 7
-    """The ``stroke`` describes the line width and style of the polygon. (version 7)"""
-
-    fill: Optional[str] = None
-    """The optional ``fill`` toke defines how the polygon is filled. Valid fill types are solid
-    and none. If not defined, the rectangle is not filled."""
-
-    locked: bool = False
-    """The optional ``locked`` token defines if the polygon cannot be edited"""
-
-    uuid: Optional[str] = None
-    """The optional ``uuid`` defines the universally unique identifier"""
-
-    @classmethod
-    def from_sexpr(cls, exp: list) -> FpPoly:
-        """Convert the given S-Expresstion into a FpPoly object
-
-        Args:
-            - exp (list): Part of parsed S-Expression ``(fp_poly ...)``
-
-        Raises:
-            - Exception: When given parameter's type is not a list
-            - Exception: When the first item of the list is not fp_poly
-
-        Returns:
-            - FpPoly: Object of the class initialized with the given S-Expression
-        """
-        if not isinstance(exp, list):
-            raise Exception("Expression does not have the correct type")
-
-        if exp[0] != 'fp_poly':
-            raise Exception("Expression does not have the correct type")
-
-        object = cls()
-
-        for item in exp:
-            if item[0] == 'locked': object.locked = sexpr.parse_bool(item)
-            if item[0] == 'pts':
-                for point in item[1:]:
-                    object.coordinates.append(Position().from_sexpr(point))
-            if item[0] == 'layer': object.layer = item[1]
-            if item[0] == 'uuid': object.uuid = item[1]
-            if item[0] == 'fill': object.fill = item[1]
-            if item[0] == 'width':
-                object.width = item[1]
-                object.stroke = None
-            if item[0] == 'stroke':
-                object.stroke = Stroke.from_sexpr(item)
-                object.width = None
-
-        return object
-
-    def to_sexpr(self, indent: int = 2, newline: bool = True) -> str:
-        """Generate the S-Expression representing this object. When no coordinates are set
-        in the polygon, the resulting S-Expression will be left empty.
-
-        Args:
-            - indent (int): Number of whitespaces used to indent the output. Defaults to 2.
-            - newline (bool): Adds a newline to the end of the output. Defaults to True.
-
-        Returns:
-            - str: S-Expression of this object
-        """
-        indents = ' '*indent
-        endline = '\n' if newline else ''
-        if len(self.coordinates) == 0:
-            return f'{indents}{endline}'
-
-        uuid = f' ( uuid "{dequote(self.uuid)}" )' if self.uuid is not None else ''
-        locked = ' (locked yes)' if self.locked else ''
-        fill = f' (fill {self.fill})' if self.fill is not None else ''
-
-        if self.width is not None:
-            width = f' (width {self.width})'
-        elif self.stroke is not None:
-            width = f' {self.stroke.to_sexpr(indent=0, newline=False)}'
-        else:
-            width = ''
-
-        expression = f'{indents}(fp_poly (pts\n'
-        for point in self.coordinates:
-            expression += f'{indents}    (xy {point.X} {point.Y})\n'
-        expression += f'{indents}  ){width}{fill}{locked} (layer "{dequote(self.layer)}"){uuid}){endline}'
-        return expression
+    sexpr_prefix: ClassVar[List[str]]= ["fp_poly"]
 
 @dataclass
 class FpCurve():

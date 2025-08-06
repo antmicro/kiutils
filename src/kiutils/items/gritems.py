@@ -20,7 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, List, ClassVar, cast
 
-from kiutils.items.common import Effects, Position, RenderCache, Stroke, Coordinate2D, PositionEnd, PositionStart, PositionCenter, PositionMid
+from kiutils.items.common import Effects, Position, RenderCache, Stroke, Coordinate2D, PositionEnd, PositionStart, PositionCenter, BaseArc, BasePoly
 from kiutils.items.brditems import LayerList, LayerAccess
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
@@ -306,22 +306,13 @@ class GrCircle(SexprAuto, LayerAccess):
     """The optional ``uuid`` defines the universally unique identifier"""
 
 @dataclass
-class GrArc(SexprAuto, LayerAccess):
+class GrArc(BaseArc, LayerAccess):
     """The ``gr_arc`` token defines a graphic arc.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_arc
     """
-    sexpr_prefix: ClassVar[List[str]]= ["gr_arc"]
-
-    start: PositionStart = field(default_factory=lambda: PositionStart())
-    """The ``start`` token defines the coordinates of the start position of the arc radius"""
-
-    mid: PositionMid = field(default_factory=lambda: PositionMid())
-    """The ``mid`` token defines the coordinates of the midpoint along the arc"""
-
-    end: PositionEnd = field(default_factory=lambda: PositionEnd())
-    """The ``end`` token defines the coordinates of the end position of the arc radius"""
+    sexpr_prefix: ClassVar[List[str]]= ["gr_arc", "arc"]
 
     locked: Optional[bool] = None
     """The ``locked`` token defines if the object may be moved or not"""
@@ -348,23 +339,20 @@ class CoordinateAccess():
     @property
     def coordinates(self) -> List[Position]:
         """Same as ``pts``"""
-        return [cast(Position, i) for i in self.pts]
+        return [cast(Position, i) for i in self.pts if isinstance(i, Position)]
 
     @coordinates.setter
     def coordinates(self, pts: List[Position]) -> None:
         self.pts =  [cast(Coordinate2D, p) for p in pts]
 
 @dataclass
-class GrPoly(SexprAuto, LayerAccess, CoordinateAccess):
+class GrPoly(BasePoly, LayerAccess, CoordinateAccess): # type: ignore
     """The ``gr_poly`` token defines a graphic polygon in a footprint definition.
 
     Documentation:
         https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_polygon
     """
     sexpr_prefix: ClassVar[List[str]]= ["gr_poly"]
-
-    pts: List[Coordinate2D] = field(default_factory=list)
-    """The ``layer`` token defines the canonical layer the polygon resides on"""
 
     locked: Optional[bool] = None
     """The ``locked`` token defines if the object may be moved or not"""
