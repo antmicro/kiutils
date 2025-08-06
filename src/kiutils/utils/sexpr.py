@@ -178,6 +178,10 @@ def from_sexpr(cls: Any, full_exp: Any, w_name: bool = True) -> Any:
         return from_sexpr(
             [i for i in get_args(cls) if not type(None) == i][0], full_exp
         )
+    if get_origin(cls) is Union:
+        return from_sexpr(
+            [i for i in get_args(cls) if full_exp[0] in i.sexpr_prefix][0], full_exp
+        )
     if cls == str:
         obj = ""
         for i in exp:
@@ -306,12 +310,13 @@ class SexprAuto:
             return (val, val_type, meta)
         return (val, ser_name, val_type, meta)
 
-    def to_sexpr(self, indent=0, newline=False) -> str:
+    def to_sexpr(self, indent=0, newline=False, sexpr_prefix:Optional[str]=None) -> str:
         """Generate the S-Expression representing this object
 
         Args:
             - indent (int): Number of whitespaces used to indent the output. Defaults to 0.
             - newline (bool): Adds a newline to the end of the output. Defaults to False.
+            - sexpr_prefix (str | None): Override class sexpr_prefix. Defaults to None.
 
         Returns:
             - str: S-Expression of this object
@@ -321,7 +326,7 @@ class SexprAuto:
                 self._sexpr_inter_tuple(f, f.name in self.positional_args)
                 for f in fields(self)
             ],
-            name=self.sexpr_prefix[0],
+            name=self.sexpr_prefix[0] if not sexpr_prefix else sexpr_prefix,
             indent=indent,
             newline=newline,
         )

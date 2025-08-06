@@ -18,7 +18,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, ClassVar
+from typing import Optional, List, Dict, ClassVar, Union
 
 from kiutils.utils.strings import dequote
 from kiutils.utils import sexpr
@@ -1363,3 +1363,33 @@ class PCBTable(SexprAuto):
     column_widths: List[float] = field(default_factory=list)
     row_heights: List[float] = field(default_factory=list)
     cells: List[PCBTableCell] = field(default_factory=list)
+
+@dataclass
+class BaseArc(SexprAuto):
+    """The ``arc`` token defines a graphic arc.
+
+    Documentation:
+        https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_arc
+    """
+    sexpr_prefix: ClassVar[List[str]]= ["arc"]
+
+    start: PositionStart = field(default_factory=lambda: PositionStart())
+    """The ``start`` token defines the coordinates of the start position of the arc radius"""
+
+    mid: PositionMid = field(default_factory=lambda: PositionMid())
+    """The ``mid`` token defines the coordinates of the midpoint along the arc"""
+
+    end: PositionEnd = field(default_factory=lambda: PositionEnd())
+    """The ``end`` token defines the coordinates of the end position of the arc radius"""
+
+@dataclass
+class BasePoly(SexprAuto):
+    """The ``gr_poly`` token defines a graphic polygon in a footprint definition.
+
+    Documentation:
+        https://dev-docs.kicad.org/en/file-formats/sexpr-intro/index.html#_graphical_polygon
+    """
+    sexpr_prefix: ClassVar[List[str]]= ["poly"]
+
+    pts: List[Union[Coordinate2D, BaseArc]] = field(default_factory=list)
+    """The ``layer`` token defines the canonical layer the polygon resides on"""
